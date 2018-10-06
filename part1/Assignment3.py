@@ -38,6 +38,7 @@ class quicksort(object):
         else:
             assert False, "Invalid input data type!"
         
+        self.num_comparisions = 0
 
     def load_data(self,fname):
         '''
@@ -53,17 +54,17 @@ class quicksort(object):
         returns the number of comparisions done between array elements
         '''
         n = stop - start
-        num_comparisions = n-1
-        if n == 1:
-            return num_comparisions
+        if (n==0) or (n == 1): # no comparisions to add
+            return
         else:
+            self.num_comparisions += n-1 # add in the number of comparisions
             pivot_idx = self.choose_pivot(start,stop)
             pivot_value = self.data[pivot_idx]
 
             split_idx = start
             for partition_idx in range(start,stop,1):
-                if partition_idx == pivot_idx:
-                    continue
+                #if partition_idx == split_idx:
+                #    continue
                 if self.data[partition_idx] < pivot_value:
                     # swap
                     tmp = self.data[partition_idx]
@@ -71,8 +72,11 @@ class quicksort(object):
                     self.data[split_idx] = tmp
                     split_idx += 1
             # final step is swap out pivot value
-            self.data[pivot_idx] = self.data[split_idx]
+            self.data[pivot_idx] = self.data[split_idx-1]
             self.data[split_idx] = pivot_value
+
+            self.sort(start,split_idx)
+            self.sort(split_idx+1,stop)
 
     def choose_pivot(self,start,stop):
         '''
@@ -88,6 +92,32 @@ class quicksort(object):
             assert False, "Invalid pivot method {}".format(self.pivot_method)
 
 
-pt1 = quicksort(pivot_method="first",data_in=[1,0,2])
-print(pt1.sort(0,-1))
+data = [1,0,2]
+s = [0,1,2]
+comp = 2
+pt1 = quicksort(pivot_method="first",data_in=data)
+print(pt1.sort(0,len(data)))
 print(pt1.data)
+print(pt1.num_comparisions)
+assert pt1.data == s, "Failed to sort"
+assert pt1.num_comparisions == comp, "Failed to get right number of comparisions"
+
+data = [0,1,2]
+s = [0,1,2]
+comp = 3
+pt1 = quicksort(pivot_method="first",data_in=data)
+print(pt1.sort(0,len(data)))
+print(pt1.data)
+print(pt1.num_comparisions)
+assert pt1.data == s, "Failed to sort"
+assert pt1.num_comparisions == comp, "Failed to get right number of comparisions"
+
+data = [2,1,0]
+s = [0,1,2]
+comp = 2
+pt1 = quicksort(pivot_method="first",data_in=data)
+print(pt1.sort(0,len(data)))
+print(pt1.data)
+print(pt1.num_comparisions)
+assert pt1.data == s, "Failed to sort"
+assert pt1.num_comparisions == comp, "Failed to get right number of comparisions"
