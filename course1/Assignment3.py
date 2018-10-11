@@ -102,8 +102,8 @@ output_files = [x[7:] for x in os.listdir(test_dir) if x[:6] =="output"]
 
 pivot_methods = ["first","last"]
 for fname in input_files:
-    if int(fname[fname.rfind("_")+1:-4]) > 1000:
-        continue
+    #if int(fname[fname.rfind("_")+1:-4]) > 1000:
+    #    continue
     print("Starting {}".format(fname))
     with open("{}input_{}".format(test_dir,fname),'r') as f:
         data = [int(x.strip("\n")) for x in f.readlines()]
@@ -111,10 +111,13 @@ for fname in input_files:
         results = [int(x.strip("\n")) for x in f.readlines()]
 
     for ii,pivot_method in enumerate(pivot_methods):
-        print("\tStarting {}".format(pivot_method))
-        sorter = quicksort(pivot_method=pivot_method,data_in=data)
+        
+        #if ii==0:
+        #    continue
+        print("\tStarting {} ".format(pivot_method),end="")
+        sorter = quicksort(pivot_method=pivot_method,data_in=data.copy())
         sorter.sort(0,len(data))
+        print("Got: {} Expected: {}".format(sorter.num_comparisions,results[ii]))
         #assert sorter.num_comparisions == results[ii],"Failed with pivot_method=={} on file {}\nGot: {} Expected: {}".format(pivot_method,fname,sorter.num_comparisions,results[ii])
         if sorter.num_comparisions != results[ii]:
             print("\tFailed with pivot_method=={} on file {}\n\tGot: {} Expected: {}".format(pivot_method,fname,sorter.num_comparisions,results[ii]))
-            
