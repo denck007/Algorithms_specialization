@@ -54,42 +54,50 @@ class quicksort(object):
         returns the number of comparisions done between array elements
         '''
         n = stop - start
-        if (n==0) or (n == 1): # no comparisions to add
+        if (n==0) or (n == 1): # no comparisions possible
             return
         else:
             self.num_comparisions += n-1 # add in the number of comparisions
-            pivot_idx = self.choose_pivot(start,stop)
-            pivot_value = self.data[pivot_idx]
+            self.choose_pivot(start,stop)
+            pivot_value = self.data[start]
 
             split_idx = start
             for partition_idx in range(start,stop,1):
-                #if partition_idx == split_idx:
-                #    continue
                 if self.data[partition_idx] < pivot_value:
-                    # swap
-                    tmp = self.data[partition_idx]
-                    self.data[partition_idx] = self.data[split_idx]
-                    self.data[split_idx] = tmp
                     split_idx += 1
+                    self.swap(partition_idx, split_idx)
+                    
             # final step is swap out pivot value
-            self.data[pivot_idx] = self.data[split_idx-1]
-            self.data[split_idx] = pivot_value
+            self.swap(start,split_idx)
 
             self.sort(start,split_idx)
             self.sort(split_idx+1,stop)
 
     def choose_pivot(self,start,stop):
         '''
-        return the index of the pivot in the list self.data
+        Select the pivot based on self.pivot_method
+        Swaps the selected pivot and the first element to turn all pivot locations into the simple 'first' case
         '''
         if self.pivot_method == "first":
-            return start
+            return
         elif self.pivot_method == "last":
-            return stop
+            self.swap(start, stop)
+            return
         elif self.pivot_method == "median3":
             return None
         else:
             assert False, "Invalid pivot method {}".format(self.pivot_method)
+
+    def swap(self, position1,position2):
+        '''
+        Swap the values in position1 and position2
+        '''
+        tmp = self.data[position1]
+        self.data[position1] = self.data[position2]
+        self.data[position2] = tmp
+
+
+
 
 
 data = [1,0,2]
@@ -112,8 +120,8 @@ print(pt1.num_comparisions)
 assert pt1.data == s, "Failed to sort"
 assert pt1.num_comparisions == comp, "Failed to get right number of comparisions"
 
-data = [2,1,0]
-s = [0,1,2]
+data = [12,11,10]
+s = [10,11,12]
 comp = 2
 pt1 = quicksort(pivot_method="first",data_in=data)
 print(pt1.sort(0,len(data)))
