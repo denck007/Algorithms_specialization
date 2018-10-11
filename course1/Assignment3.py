@@ -20,7 +20,7 @@ Todo:
 [ ]: Choose last element
 [ ]: Meidan of 3 rule
 '''
-
+import os
 class quicksort(object):
     def __init__(self,pivot_method,data_in="part1/assignment3_input.txt"):
         '''
@@ -46,7 +46,7 @@ class quicksort(object):
         '''
         with open(fname,'r') as f:
             data = f.readlines()
-        self.data = [int(x) for x in data]
+        self.data = [int(x.strip("\n")) for x in data]
 
     def sort(self,start,stop):
         '''
@@ -81,7 +81,7 @@ class quicksort(object):
         if self.pivot_method == "first":
             return
         elif self.pivot_method == "last":
-            self.swap(start, stop)
+            self.swap(start, stop-1)
             return
         elif self.pivot_method == "median3":
             return None
@@ -96,36 +96,25 @@ class quicksort(object):
         self.data[position1] = self.data[position2]
         self.data[position2] = tmp
 
+test_dir = "course1/test_assignment3/"
+input_files = [x[6:] for x in os.listdir(test_dir) if x[:5] =="input"]
+output_files = [x[7:] for x in os.listdir(test_dir) if x[:6] =="output"]
 
+pivot_methods = ["first","last"]
+for fname in input_files:
+    if int(fname[fname.rfind("_")+1:-4]) > 1000:
+        continue
+    print("Starting {}".format(fname))
+    with open("{}input_{}".format(test_dir,fname),'r') as f:
+        data = [int(x.strip("\n")) for x in f.readlines()]
+    with open("{}output_{}".format(test_dir,fname),'r') as f:
+        results = [int(x.strip("\n")) for x in f.readlines()]
 
-
-
-data = [1,0,2]
-s = [0,1,2]
-comp = 2
-pt1 = quicksort(pivot_method="first",data_in=data)
-print(pt1.sort(0,len(data)))
-print(pt1.data)
-print(pt1.num_comparisions)
-assert pt1.data == s, "Failed to sort"
-assert pt1.num_comparisions == comp, "Failed to get right number of comparisions"
-
-data = [0,1,2]
-s = [0,1,2]
-comp = 3
-pt1 = quicksort(pivot_method="first",data_in=data)
-print(pt1.sort(0,len(data)))
-print(pt1.data)
-print(pt1.num_comparisions)
-assert pt1.data == s, "Failed to sort"
-assert pt1.num_comparisions == comp, "Failed to get right number of comparisions"
-
-data = [12,11,10]
-s = [10,11,12]
-comp = 2
-pt1 = quicksort(pivot_method="first",data_in=data)
-print(pt1.sort(0,len(data)))
-print(pt1.data)
-print(pt1.num_comparisions)
-assert pt1.data == s, "Failed to sort"
-assert pt1.num_comparisions == comp, "Failed to get right number of comparisions"
+    for ii,pivot_method in enumerate(pivot_methods):
+        print("\tStarting {}".format(pivot_method))
+        sorter = quicksort(pivot_method=pivot_method,data_in=data)
+        sorter.sort(0,len(data))
+        #assert sorter.num_comparisions == results[ii],"Failed with pivot_method=={} on file {}\nGot: {} Expected: {}".format(pivot_method,fname,sorter.num_comparisions,results[ii])
+        if sorter.num_comparisions != results[ii]:
+            print("\tFailed with pivot_method=={} on file {}\n\tGot: {} Expected: {}".format(pivot_method,fname,sorter.num_comparisions,results[ii]))
+            
