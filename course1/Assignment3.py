@@ -84,7 +84,21 @@ class quicksort(object):
             self.swap(start, stop-1)
             return
         elif self.pivot_method == "median3":
-            return None
+            # find median by sorting the list of values and then searching for where the value ended up 
+            middle = (stop-start)//2+start
+            if (stop-start)%2 ==0: # even number of elements
+                middle -= 1
+            idxs = [start,middle,stop-1]
+            vals = [self.data[idx] for idx in idxs]
+            
+            sort = quicksort(pivot_method="first",data_in=vals) # note a subtle passing by reference here
+            sort.sort(0,len(vals))
+            for idx in idxs:
+                if self.data[idx] == vals[1]:
+                    median = idx
+                    break
+            self.swap(start,median)
+            return
         else:
             assert False, "Invalid pivot method {}".format(self.pivot_method)
 
@@ -100,10 +114,10 @@ test_dir = "course1/test_assignment3/"
 input_files = [x[6:] for x in os.listdir(test_dir) if x[:5] =="input"]
 output_files = [x[7:] for x in os.listdir(test_dir) if x[:6] =="output"]
 
-pivot_methods = ["first","last"]
+pivot_methods = ["first","last","median3"]
 for fname in input_files:
-    #if int(fname[fname.rfind("_")+1:-4]) > 1000:
-    #    continue
+    if int(fname[fname.rfind("_")+1:-4]) > 1000:
+        continue
     print("Starting {}".format(fname))
     with open("{}input_{}".format(test_dir,fname),'r') as f:
         data = [int(x.strip("\n")) for x in f.readlines()]
@@ -111,13 +125,20 @@ for fname in input_files:
         results = [int(x.strip("\n")) for x in f.readlines()]
 
     for ii,pivot_method in enumerate(pivot_methods):
-        
-        #if ii==0:
-        #    continue
         print("\tStarting {} ".format(pivot_method),end="")
         sorter = quicksort(pivot_method=pivot_method,data_in=data.copy())
         sorter.sort(0,len(data))
         print("Got: {} Expected: {}".format(sorter.num_comparisions,results[ii]))
-        #assert sorter.num_comparisions == results[ii],"Failed with pivot_method=={} on file {}\nGot: {} Expected: {}".format(pivot_method,fname,sorter.num_comparisions,results[ii])
+        assert sorter.num_comparisions == results[ii],"Failed with pivot_method=={} on file {}\nGot: {} Expected: {}".format(pivot_method,fname,sorter.num_comparisions,results[ii])
         if sorter.num_comparisions != results[ii]:
-            print("\tFailed with pivot_method=={} on file {}\n\tGot: {} Expected: {}".format(pivot_method,fname,sorter.num_comparisions,results[ii]))
+            print("---Failed with pivot_method=={} on file {} Got: {} Expected: {}".format(pivot_method,fname,sorter.num_comparisions,results[ii]))
+
+print("Starting Assignment input...")
+fname = "course1/assignment3_inputs.txt"
+with open(fname,'r') as f:
+    data = [int(x.strip("\n")) for x in f.readlines()]
+for ii,pivot_method in enumerate(pivot_methods):
+    print("\tStarting {} ".format(pivot_method),end="")
+    sorter = quicksort(pivot_method=pivot_method,data_in=data.copy())
+    sorter.sort(0,len(data))
+    print("Got: {} comparisinos".format(sorter.num_comparisions))
