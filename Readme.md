@@ -13,3 +13,5 @@ These are my solutions to taking the Coursera Algorithms Specializaiton.
 
 ## Part 4: Shortest Paths Revisited, NP-Complete Problems and What To Do About Them
 
+## Test cases
+Inside of each course folder there are test case folders. These are take from [beaunus/stanford-algs](https://github.com/beaunus/stanford-algs/) listing of test cases.
