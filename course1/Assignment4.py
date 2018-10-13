@@ -19,7 +19,7 @@ Initially it is best to implement the contraction alorithm niavely by creating a
 def build_adjacency_list(input):
     '''
     input is a list of lists
-    returns vertex_edges and edge_verticies lists
+    returns vertex_edges and edge_verticies dicts
     input: 
         First item in each row is the vertex id
         rest of items in each row are connected verticies
@@ -37,7 +37,7 @@ def build_adjacency_list(input):
 
 def build_edge_verticies(input):
     '''
-    Given an input list build the edge to verticies list
+    Given an input list build the edge to verticies dict
     Note that self loops are not filtered out here
     input: 
         First item in each row is the vertex id
@@ -46,49 +46,62 @@ def build_edge_verticies(input):
         edge_verticies:
             edge_verticies[m_jj] are the [start,end] verticies of edge m_jj
     '''
-    edge_verticies = [[]]
+    edge_verticies = {}
+    num_edges = 0
     for row in input:
         r = sorted(row[1:])
         for ii in r:
             if ii < row[0]: # already created edge in previous iteration
                 continue
-            edge_verticies.append([row[0],ii])
+            num_edges += 1
+            edge_verticies.update({num_edges:[row[0],ii]})
     return edge_verticies
 
 def build_vertex_edges(edge_verticies,num_verticies):
     '''
-    given a edge_verticies list, return the corresponding vertex_edges list
+    given a edge_verticies dict, return the corresponding vertex_edges dict
     note that self loops are not filtered out here
     input:
         edge_verticies:
-            list where edge_verticies[m_jj] is verticies [end_0,end_1] for edge m_jj
-        num_verticies: number of verticies in the graph
+            dict where edge_verticies[m_jj] is verticies [end_0,end_1] for edge m_jj
     output:
         vertex_edges:
-            list where vertex_edges[n_ii] are edges that have an end at vertex n_ii
+            dict where vertex_edges[n_ii] are edges that have an end at vertex n_ii
     '''
-    vertex_edges = [[] for x in range(num_verticies)]
-    for jj,edge in enumerate(edge_verticies):
-        for vertex in edge:
-            vertex_edges[vertex].append(jj)
+    vertex_edges = {}
+    for edge in edge_verticies.keys():
+        for vertex in edge_verticies[edge]:
+            if vertex in vertex_edges.keys():
+                vertex_edges[vertex].append(edge)
+            else:
+                vertex_edges.update({vertex:[edge]})
     return vertex_edges
 
-def remove_self_loops(vertex_edges,edge_verticies,valid_edges):
+def remove_self_loops(vertex_edges,edge_verticies):
     '''
     Remove references to self loops in vertex_edges and edge_verticies
-    This function does not renumber the edges, it simply removes the self loops
-        This means that there care edges whose verticie list is empty, ie edge_vertices[jj] == []
+    This function removes self loops by removing the edge from the edge_verties dict and 
     Returns the lists
     '''
-    # in a self loop the same edge is listed 2 times for the same vertex
-    for ii in range(len(vertex_edges)):
-        vertex_edges[ii] = list(set(vertex_edges[ii]))
-
-    for edge in valid_edges[::-1]:
+    self_loop_edges = [] # track which edges are self loops so we can remove them from vertex_edge
+    keys = list(edge_verticies.keys())
+    for edge in keys:
         if edge_verticies[edge][0] == edge_verticies[edge][1]:  #is self loop
-            edge_verticies[edge] = []
-            valid_edges.remove(edge)
-    return vertex_edges,edge_verticies,valid_edges
+            edge_verticies.pop(edge)
+            self_loop_edges.append(edge)
+
+    # remove the reference to edges in vertex_edges
+    # remove any verticies that are not attached to an edge
+    keys = list(vertex_edges.keys())
+    for vertex in keys:
+        for edge in self_loop_edges:
+            if edge in vertex_edges[vertex]:
+                vertex_edges[vertex] = vertex_edges[vertex].remove(edge)
+        if vertex_edges[vertex] == []:
+            vertex_edges.pop(vertex)
+
+    
+    return vertex_edges,edge_verticies
 
 def contract_graph(vertex_edges,edge_verticies,edge):
     '''
@@ -97,7 +110,7 @@ def contract_graph(vertex_edges,edge_verticies,edge):
     # remove reference to edge in vertex_edges
     vertex_edges[edge_verticies[edge][0]].remove(edge)
     vertex_edges[edge_verticies[edge][1]].remove(edge)
-    edge_verticies[edge] = []
+    edge_verticies.pop(edge)
 
     return vertex_edges,edge_verticies
 
@@ -106,30 +119,27 @@ input = [[1,2,3,4],
         [2,1,4],
         [3,1,4],
         [4,1,2,3]]
-vertex_edges_true = [
-                [],
-                [1,2,3],
-                [1,4],
-                [2,5],
-                [3,4,5]]
-edge_verticies_true = [[],
-                    [1,2],
-                    [1,3],
-                    [1,4],
-                    [2,4],
-                    [3,4]]
+vertex_edges_true = {
+                    1:[1,2,3],
+                    2:[1,4],
+                    3:[2,5],
+                    4:[3,4,5]}
+edge_verticies_true = {
+                    1:[1,2],
+                    2:[1,3],
+                    3:[1,4],
+                    4:[2,4],
+                    5:[3,4]}
 vertex_edges,edge_verticies = build_adjacency_list(input)
 assert edge_verticies == edge_verticies_true,"Failed edge_verticies\n\t{}\n\t{}".format(edge_verticies,edge_verticies_true)
 assert vertex_edges == vertex_edges_true, "Failed vertex_edges\n\t{}\n\t{}".format(vertex_edges,vertex_edges_true)
 
 import random
-valid_edges = [x for x in range(1,len(edge_verticies))]
-while len(valid_edges) > 2:
-    edge = random.choice(valid_edges)
+while len(vertex_edges) > 2:
+    edge = random.choice(list(edge_verticies.keys()))
     vertex_edges,edge_verticies = contract_graph(vertex_edges,edge_verticies,edge)
-    valid_edges.remove(edge)
 
-    vertex_edges,edge_verticies,valid_edges = remove_self_loops(vertex_edges,edge_verticies,valid_edges)
+    vertex_edges,edge_verticies = remove_self_loops(vertex_edges,edge_verticies)
 
 
 
@@ -139,26 +149,25 @@ input = [[1,1,2,3,4,5,6],
         [4,1,6],
         [5,1,2],
         [6,1,3,6]]
-vertex_edges_true = [
-                [],
-                [1,1,2,3,4,5,6],
-                [2,7,8],
-                [3,7,9],
-                [4,10],
-                [5,8],
-                [6,9,10,11,11]]
-edge_verticies_true = [[],
-                    [1,1],
-                    [1,2],
-                    [1,3],
-                    [1,4],
-                    [1,5],
-                    [1,6],
-                    [2,3],
-                    [2,5],
-                    [3,6],
-                    [4,6],
-                    [6,6]]
+vertex_edges_true = {
+                1:[1,1,2,3,4,5,6],
+                2:[2,7,8],
+                3:[3,7,9],
+                4:[4,10],
+                5:[5,8],
+                6:[6,9,10,11,11]}
+edge_verticies_true = {
+                    1:[1,1],
+                    2:[1,2],
+                    3:[1,3],
+                    4:[1,4],
+                    5:[1,5],
+                    6:[1,6],
+                    7:[2,3],
+                    8:[2,5],
+                    9:[3,6],
+                    10:[4,6],
+                    11:[6,6]}
 vertex_edges,edge_verticies = build_adjacency_list(input)
 assert edge_verticies == edge_verticies_true,"Failed edge_verticies\n\t{}\n\t{}".format(edge_verticies,edge_verticies_true)
 assert vertex_edges == vertex_edges_true, "Failed vertex_edges\n\t{}\n\t{}".format(vertex_edges,vertex_edges_true)
