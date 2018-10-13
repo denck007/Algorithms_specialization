@@ -157,7 +157,7 @@ assert inversion_true == inversions,'Failed on {}\n\tOutput: {}\n\tTruth: {}'.fo
 start_time = time.time()
 
 print("Starting final result...")
-input = get_inputs("part1/assignment2_inputs.txt")
+input = get_inputs("course1/assignment2_inputs.txt")
 post_read = time.time()
 s, inversions = count_inversions(input)
 end_time = time.time()
