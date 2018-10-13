@@ -15,6 +15,7 @@ Initially it is best to implement the contraction alorithm niavely by creating a
 
 '''
 
+import random
 
 def build_adjacency_list(input):
     '''
@@ -96,7 +97,7 @@ def remove_self_loops(vertex_edges,edge_verticies):
     for vertex in keys:
         for edge in self_loop_edges:
             if edge in vertex_edges[vertex]:
-                vertex_edges[vertex] = vertex_edges[vertex].remove(edge)
+                vertex_edges[vertex].remove(edge)
         if vertex_edges[vertex] == []:
             vertex_edges.pop(vertex)
 
@@ -108,13 +109,40 @@ def contract_graph(vertex_edges,edge_verticies,edge):
     Contract a graph by removing the specified edge via merging the corresponding verticies
     '''
     # remove reference to edge in vertex_edges
-    vertex_edges[edge_verticies[edge][0]].remove(edge)
-    vertex_edges[edge_verticies[edge][1]].remove(edge)
+    vertex1 = edge_verticies[edge][0]
+    vertex2 = edge_verticies[edge][1]
+    vertex_edges[vertex1].remove(edge)    
+
+    # go over all the edges, replace references to 2nd vertex with 1st vertex
+    for jj in edge_verticies.keys():
+        if edge_verticies[jj][0] == vertex2:
+            edge_verticies[jj][0] = vertex1
+        if edge_verticies[jj][1] == vertex2:
+            edge_verticies[jj][1] = vertex1
+
+        #for vertex_idx in range(len(edge_verticies[jj])):
+        #    if edge_verticies[jj][vertex_idx] == vertex2:
+        #        edge_verticies[jj][vertex_idx] = vertex1
+    
+    vertex_edges.pop(vertex2) # delete the 2nd vertex
+    
+    # finally delete the edge
     edge_verticies.pop(edge)
 
     return vertex_edges,edge_verticies
 
-
+def min_cut_random_contraction(vertex_edges,edge_verticies):
+    '''
+    Given a graph defined by vertex_edges and edge_verticies compute minimum cut size of a random sequence of contractions
+    This is unlikely to return the actual minimum cut of the graph in running this function 1 time
+    Run this multiple times on the same graph to get a different sequence of cuts and be more likely to get the actual min cut
+    '''
+    while len(vertex_edges) > 2:
+        edge = random.choice(list(edge_verticies.keys()))
+        vertex_edges,edge_verticies = contract_graph(vertex_edges,edge_verticies,edge)
+        vertex_edges,edge_verticies = remove_self_loops(vertex_edges,edge_verticies)
+    return len(edge_verticies)
+'''
 input = [[1,2,3,4],
         [2,1,4],
         [3,1,4],
@@ -130,19 +158,18 @@ edge_verticies_true = {
                     3:[1,4],
                     4:[2,4],
                     5:[3,4]}
+min_cut_true = 2
 vertex_edges,edge_verticies = build_adjacency_list(input)
 assert edge_verticies == edge_verticies_true,"Failed edge_verticies\n\t{}\n\t{}".format(edge_verticies,edge_verticies_true)
 assert vertex_edges == vertex_edges_true, "Failed vertex_edges\n\t{}\n\t{}".format(vertex_edges,vertex_edges_true)
+min_cut = len(edge_verticies)
+for ii in range(10):
+    vertex_edges,edge_verticies = build_adjacency_list(input)
+    new_estimate = min_cut_random_contraction(vertex_edges.copy(),edge_verticies.copy())
+    min_cut = min(new_estimate,min_cut)
+    print("iteration {} min_cut: {}".format(ii,min_cut))
 
-import random
-while len(vertex_edges) > 2:
-    edge = random.choice(list(edge_verticies.keys()))
-    vertex_edges,edge_verticies = contract_graph(vertex_edges,edge_verticies,edge)
-
-    vertex_edges,edge_verticies = remove_self_loops(vertex_edges,edge_verticies)
-
-
-
+'''
 input = [[1,1,2,3,4,5,6],
         [2,1,3,5],
         [3,1,2,6],
@@ -171,5 +198,11 @@ edge_verticies_true = {
 vertex_edges,edge_verticies = build_adjacency_list(input)
 assert edge_verticies == edge_verticies_true,"Failed edge_verticies\n\t{}\n\t{}".format(edge_verticies,edge_verticies_true)
 assert vertex_edges == vertex_edges_true, "Failed vertex_edges\n\t{}\n\t{}".format(vertex_edges,vertex_edges_true)
-
+min_cut = len(edge_verticies)
+for ii in range(10):
+    vertex_edges,edge_verticies = build_adjacency_list(input)
+    new_estimate = min_cut_random_contraction(vertex_edges.copy(),edge_verticies.copy())
+    min_cut = min(new_estimate,min_cut)
+    print("iteration {} min_cut: {}".format(ii,min_cut))
+    
 print("Passed test")
