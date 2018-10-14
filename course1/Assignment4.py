@@ -96,7 +96,7 @@ def remove_self_loops(vertex_edges,edge_verticies):
     keys = list(vertex_edges.keys())
     for vertex in keys:
         for edge in self_loop_edges:
-            if edge in vertex_edges[vertex]:
+            while edge in vertex_edges[vertex]: # remove all instances of the vertex, multiples happen in self loops
                 vertex_edges[vertex].remove(edge)
         if vertex_edges[vertex] == []:
             vertex_edges.pop(vertex)
@@ -137,10 +137,16 @@ def min_cut_random_contraction(vertex_edges,edge_verticies):
     This is unlikely to return the actual minimum cut of the graph in running this function 1 time
     Run this multiple times on the same graph to get a different sequence of cuts and be more likely to get the actual min cut
     '''
+    #edges_deterministic = list(edge_verticies.keys())
     while len(vertex_edges) > 2:
-        edge = random.choice(list(edge_verticies.keys()))
-        vertex_edges,edge_verticies = contract_graph(vertex_edges,edge_verticies,edge)
+        #
+        #edge = edges_deterministic.pop()
+        
         vertex_edges,edge_verticies = remove_self_loops(vertex_edges,edge_verticies)
+        edge = random.choice(list(edge_verticies.keys()))
+        print("working on edge {}".format(edge))
+        vertex_edges,edge_verticies = contract_graph(vertex_edges,edge_verticies,edge)
+        
     return len(edge_verticies)
 '''
 input = [[1,2,3,4],
