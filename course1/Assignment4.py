@@ -78,31 +78,7 @@ def build_vertex_edges(edge_verticies,num_verticies):
             else:
                 vertex_edges.update({vertex:[edge]})
     return vertex_edges
-#@profile
-def remove_self_loops(vertex_edges,edge_verticies):
-    '''
-    Remove references to self loops in vertex_edges and edge_verticies
-    This function removes self loops by removing the edge from the edge_verties dict and 
-    Returns the lists
-    '''
-    self_loop_edges = [] # track which edges are self loops so we can remove them from vertex_edge
-    keys = list(edge_verticies.keys())
-    for edge in keys:
-        if edge_verticies[edge][0] == edge_verticies[edge][1]:  #is self loop
-            edge_verticies.pop(edge)
-            self_loop_edges.append(edge)
 
-    # remove the reference to edges in vertex_edges
-    # remove any verticies that are not attached to an edge
-    keys = list(vertex_edges.keys())
-    for vertex in keys:
-        for edge in self_loop_edges:
-            while edge in vertex_edges[vertex]: # remove all instances of the vertex, multiples happen in self loops
-                vertex_edges[vertex].remove(edge)
-        if vertex_edges[vertex] == []:
-            vertex_edges.pop(vertex)
-
-    return vertex_edges,edge_verticies
 #@profile
 def contract_graph(vertex_edges,edge_verticies,edge):
     '''
@@ -118,14 +94,18 @@ def contract_graph(vertex_edges,edge_verticies,edge):
     vertex_edges.pop(vertex2) # delete the 2nd vertex
     
     # go over all the edges, replace references to 2nd vertex with 1st vertex
-    for jj in edge_verticies.keys():
+    edges = list(edge_verticies.keys())
+    for jj in edges:
         if edge_verticies[jj][0] == vertex2:
             edge_verticies[jj][0] = vertex1
         if edge_verticies[jj][1] == vertex2:
             edge_verticies[jj][1] = vertex1
+        if edge_verticies[jj][0] == edge_verticies[jj][1]: # remove any self loops that are created
+            edge_verticies.pop(jj)
 
-    # finally delete the edge
-    edge_verticies.pop(edge)
+    # finally delete the edge if it still exists
+    if edge in edge_verticies:
+        edge_verticies.pop(edge)
 
     return vertex_edges,edge_verticies
 #@profile
@@ -136,11 +116,8 @@ def min_cut_random_contraction_iteration(vertex_edges,edge_verticies):
     Run this multiple times on the same graph to get a different sequence of cuts and be more likely to get the actual min cut
     '''
     while len(vertex_edges) > 2:
-        vertex_edges,edge_verticies = remove_self_loops(vertex_edges,edge_verticies)
         edge = random.choice(list(edge_verticies.keys()))
-        #print("\tworking on edge {}\n\tvertex_edges: {}\n\tedge_verticies: {}".format(edge,vertex_edges,edge_verticies))
         vertex_edges,edge_verticies = contract_graph(vertex_edges,edge_verticies,edge)
-    vertex_edges,edge_verticies = remove_self_loops(vertex_edges,edge_verticies)# remove any staggling self loops
     return len(edge_verticies)
 
 def min_cut_random_contraction(input):
@@ -185,7 +162,7 @@ def read_input_text_file(fname,testing=False):
 base_path = "course1/test_assignment4"
 test_files = [f for f in os.listdir(base_path) if "input" in f]
 for f in test_files:
-    if int(f[f.rfind("_")+1:-4]) > 26: # skip the big ones
+    if int(f[f.rfind("_")+1:-4]) > 9: # skip the big ones
         continue
     print("Starting on file {}".format(f))
     input,truth = read_input_text_file(os.path.join(base_path,f),testing=True)
