@@ -14,8 +14,9 @@ The algorithm is random so it will need to be run a multiple times to get the mi
 Initially it is best to implement the contraction alorithm niavely by creating a new graph for each run 
 
 '''
-
+import os
 import random
+import time
 
 def build_adjacency_list(input):
     '''
@@ -77,7 +78,7 @@ def build_vertex_edges(edge_verticies,num_verticies):
             else:
                 vertex_edges.update({vertex:[edge]})
     return vertex_edges
-
+#@profile
 def remove_self_loops(vertex_edges,edge_verticies):
     '''
     Remove references to self loops in vertex_edges and edge_verticies
@@ -101,9 +102,8 @@ def remove_self_loops(vertex_edges,edge_verticies):
         if vertex_edges[vertex] == []:
             vertex_edges.pop(vertex)
 
-    
     return vertex_edges,edge_verticies
-
+#@profile
 def contract_graph(vertex_edges,edge_verticies,edge):
     '''
     Contract a graph by removing the specified edge via merging the corresponding verticies
@@ -124,93 +124,78 @@ def contract_graph(vertex_edges,edge_verticies,edge):
         if edge_verticies[jj][1] == vertex2:
             edge_verticies[jj][1] = vertex1
 
-        #for vertex_idx in range(len(edge_verticies[jj])):
-        #    if edge_verticies[jj][vertex_idx] == vertex2:
-        #        edge_verticies[jj][vertex_idx] = vertex1
-    
     # finally delete the edge
     edge_verticies.pop(edge)
 
     return vertex_edges,edge_verticies
-
-def min_cut_random_contraction(vertex_edges,edge_verticies):
+#@profile
+def min_cut_random_contraction_iteration(vertex_edges,edge_verticies):
     '''
     Given a graph defined by vertex_edges and edge_verticies compute minimum cut size of a random sequence of contractions
     This is unlikely to return the actual minimum cut of the graph in running this function 1 time
     Run this multiple times on the same graph to get a different sequence of cuts and be more likely to get the actual min cut
     '''
-    #edges_deterministic = list(edge_verticies.keys())
     while len(vertex_edges) > 2:
-        #
-        #edge = edges_deterministic.pop()
-        
         vertex_edges,edge_verticies = remove_self_loops(vertex_edges,edge_verticies)
         edge = random.choice(list(edge_verticies.keys()))
-        print("working on edge {}".format(edge))
+        #print("\tworking on edge {}\n\tvertex_edges: {}\n\tedge_verticies: {}".format(edge,vertex_edges,edge_verticies))
         vertex_edges,edge_verticies = contract_graph(vertex_edges,edge_verticies,edge)
-        
+    vertex_edges,edge_verticies = remove_self_loops(vertex_edges,edge_verticies)# remove any staggling self loops
     return len(edge_verticies)
-'''
-input = [[1,2,3,4],
-        [2,1,4],
-        [3,1,4],
-        [4,1,2,3]]
-vertex_edges_true = {
-                    1:[1,2,3],
-                    2:[1,4],
-                    3:[2,5],
-                    4:[3,4,5]}
-edge_verticies_true = {
-                    1:[1,2],
-                    2:[1,3],
-                    3:[1,4],
-                    4:[2,4],
-                    5:[3,4]}
-min_cut_true = 2
-vertex_edges,edge_verticies = build_adjacency_list(input)
-assert edge_verticies == edge_verticies_true,"Failed edge_verticies\n\t{}\n\t{}".format(edge_verticies,edge_verticies_true)
-assert vertex_edges == vertex_edges_true, "Failed vertex_edges\n\t{}\n\t{}".format(vertex_edges,vertex_edges_true)
-min_cut = len(edge_verticies)
-for ii in range(10):
-    vertex_edges,edge_verticies = build_adjacency_list(input)
-    new_estimate = min_cut_random_contraction(vertex_edges.copy(),edge_verticies.copy())
-    min_cut = min(new_estimate,min_cut)
-    print("iteration {} min_cut: {}".format(ii,min_cut))
 
-'''
-input = [[1,1,2,3,4,5,6],
-        [2,1,3,5],
-        [3,1,2,6],
-        [4,1,6],
-        [5,1,2],
-        [6,1,3,6]]
-vertex_edges_true = {
-                1:[1,1,2,3,4,5,6],
-                2:[2,7,8],
-                3:[3,7,9],
-                4:[4,10],
-                5:[5,8],
-                6:[6,9,10,11,11]}
-edge_verticies_true = {
-                    1:[1,1],
-                    2:[1,2],
-                    3:[1,3],
-                    4:[1,4],
-                    5:[1,5],
-                    6:[1,6],
-                    7:[2,3],
-                    8:[2,5],
-                    9:[3,6],
-                    10:[4,6],
-                    11:[6,6]}
-vertex_edges,edge_verticies = build_adjacency_list(input)
-assert edge_verticies == edge_verticies_true,"Failed edge_verticies\n\t{}\n\t{}".format(edge_verticies,edge_verticies_true)
-assert vertex_edges == vertex_edges_true, "Failed vertex_edges\n\t{}\n\t{}".format(vertex_edges,vertex_edges_true)
-min_cut = len(edge_verticies)
-for ii in range(20):
-    vertex_edges,edge_verticies = build_adjacency_list(input)
-    new_estimate = min_cut_random_contraction(vertex_edges.copy(),edge_verticies.copy())
-    min_cut = min(new_estimate,min_cut)
-    print("iteration {} min_cut: {}".format(ii,min_cut))
+def min_cut_random_contraction(input):
+    '''
+
+    Given a graph defined by vertex_edges and edge_verticies compute minimum cut size of a random sequence of contractions
+    This runs the min_cut_random_contraction_iteration function n**2 times to get a high probability that we find the correct min cut
+    '''
     
-print("Passed test")
+    num_iterations = len(input)**2
+    min_cut = len(input)**2 #this is an overestimate of the max possible number of edges
+    start_time = time.time()
+    for ii in range(num_iterations):
+        vertex_edges,edge_verticies = build_adjacency_list(input)
+        new_estimate = min_cut_random_contraction_iteration(vertex_edges,edge_verticies)
+        min_cut = min(new_estimate,min_cut)
+        elasped_time = time.time() - start_time
+        average_time = elasped_time/(ii+1)*1000
+        print("\riteration {}/{} new estimate: {} min_cut: {} total time: {:.1f}s avg time: {:.1f}ms".format(ii,num_iterations,new_estimate,min_cut,elasped_time,average_time),end="")
+
+    print()
+    return min_cut
+
+def read_input_text_file(fname,testing=False):
+    '''
+    Read in a text file and return the array of arrays needed to generate the graph
+    if testing then we know the ground truth, so read it in and return it as well
+    '''
+    data = []
+    with open(fname,'r') as f:
+        for line in f.readlines():
+            data.append([int(x) for x in line.strip("\n").split()])
+    
+    if testing:
+        with open(fname.replace("input","output"),'r') as f:
+            groundtruth = f.readlines()
+        groundtruth = int(groundtruth[0].strip("\n"))
+        return data,groundtruth
+    else:
+        return data
+
+base_path = "course1/test_assignment4"
+test_files = [f for f in os.listdir(base_path) if "input" in f]
+for f in test_files:
+    if int(f[f.rfind("_")+1:-4]) > 26: # skip the big ones
+        continue
+    print("Starting on file {}".format(f))
+    input,truth = read_input_text_file(os.path.join(base_path,f),testing=True)
+    min_cut = min_cut_random_contraction(input)
+    if min_cut == truth:
+        print("Correct min_cut for {} of {}".format(f,min_cut))
+    else:
+        print("Failed to get correct min cut for {} predicted: {} truth: {}".format(f,min_cut,truth))
+
+print("Starting final input")
+input = read_input_text_file("course1/assignment4_input.txt",testing=False)
+min_cut = min_cut_random_contraction(input)
+print("Minimum cut for assignment is {}".format(min_cut))
