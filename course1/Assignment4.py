@@ -111,8 +111,12 @@ def contract_graph(vertex_edges,edge_verticies,edge):
     # remove reference to edge in vertex_edges
     vertex1 = edge_verticies[edge][0]
     vertex2 = edge_verticies[edge][1]
-    vertex_edges[vertex1].remove(edge)    
 
+    vertex_edges[vertex1].remove(edge) # removed edge from vertex1
+    vertex_edges[vertex2].remove(edge) # remove the edge from 2nd vertex
+    vertex_edges[vertex1].extend(vertex_edges[vertex2]) # move all edges attached to vertex2 to vertex1
+    vertex_edges.pop(vertex2) # delete the 2nd vertex
+    
     # go over all the edges, replace references to 2nd vertex with 1st vertex
     for jj in edge_verticies.keys():
         if edge_verticies[jj][0] == vertex2:
@@ -123,8 +127,6 @@ def contract_graph(vertex_edges,edge_verticies,edge):
         #for vertex_idx in range(len(edge_verticies[jj])):
         #    if edge_verticies[jj][vertex_idx] == vertex2:
         #        edge_verticies[jj][vertex_idx] = vertex1
-    
-    vertex_edges.pop(vertex2) # delete the 2nd vertex
     
     # finally delete the edge
     edge_verticies.pop(edge)
@@ -205,7 +207,7 @@ vertex_edges,edge_verticies = build_adjacency_list(input)
 assert edge_verticies == edge_verticies_true,"Failed edge_verticies\n\t{}\n\t{}".format(edge_verticies,edge_verticies_true)
 assert vertex_edges == vertex_edges_true, "Failed vertex_edges\n\t{}\n\t{}".format(vertex_edges,vertex_edges_true)
 min_cut = len(edge_verticies)
-for ii in range(10):
+for ii in range(20):
     vertex_edges,edge_verticies = build_adjacency_list(input)
     new_estimate = min_cut_random_contraction(vertex_edges.copy(),edge_verticies.copy())
     min_cut = min(new_estimate,min_cut)
