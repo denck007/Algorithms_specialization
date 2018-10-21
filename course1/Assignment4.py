@@ -100,7 +100,8 @@ def contract_graph(vertex_edges,edge_verticies,edge):
             edge_verticies[jj][0] = vertex1
         if edge_verticies[jj][1] == vertex2:
             edge_verticies[jj][1] = vertex1
-        if edge_verticies[jj][0] == edge_verticies[jj][1]: # remove any self loops that are created
+        # remove any self loops that are created
+        if edge_verticies[jj][0] == edge_verticies[jj][1]:
             edge_verticies.pop(jj)
 
     # finally delete the edge if it still exists
@@ -119,10 +120,9 @@ def min_cut_random_contraction_iteration(vertex_edges,edge_verticies):
         edge = random.choice(list(edge_verticies.keys()))
         vertex_edges,edge_verticies = contract_graph(vertex_edges,edge_verticies,edge)
     return len(edge_verticies)
-
+#@profile
 def min_cut_random_contraction(input):
     '''
-
     Given a graph defined by vertex_edges and edge_verticies compute minimum cut size of a random sequence of contractions
     This runs the min_cut_random_contraction_iteration function n**2 times to get a high probability that we find the correct min cut
     '''
@@ -162,8 +162,8 @@ def read_input_text_file(fname,testing=False):
 base_path = "course1/test_assignment4"
 test_files = [f for f in os.listdir(base_path) if "input" in f]
 for f in test_files:
-    if int(f[f.rfind("_")+1:-4]) > 9: # skip the big ones
-        continue
+    #if int(f[f.rfind("_")+1:-4]) > 26: # skip the big ones
+    #    continue
     print("Starting on file {}".format(f))
     input,truth = read_input_text_file(os.path.join(base_path,f),testing=True)
     min_cut = min_cut_random_contraction(input)
