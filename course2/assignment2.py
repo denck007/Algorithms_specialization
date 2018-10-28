@@ -22,7 +22,9 @@ class Graph():
         self.vertex_edges = {}
         self.edge_verticies = {}
         self.edge_lengths = {}
+        self.shortest_path = {}
         self.num_edges = 0
+        self.num_verticies = 0
 
         self.output = None
         self.paths = {}
@@ -32,6 +34,7 @@ class Graph():
                 line_split = line.split("\t")
 
                 vertex = int(line_split[0])
+                self.num_verticies += 1
                 self.vertex_edges.update({vertex:[]})
                 for edge in line_split[1:]:
                     edge_split = edge.strip("\n").split(",")
@@ -40,7 +43,7 @@ class Graph():
 
                     self.edge_verticies.update({self.num_edges:[vertex,int(edge_split[0])]})
                     self.edge_lengths.update({self.num_edges:int(edge_split[1])})
-
+        
         if testing:
             result_fname = fname.replace("input","output")
             with open(result_fname,'r') as f:
@@ -114,9 +117,6 @@ class Heap():
         self.heap_vertex[self.end_of_heap] = -9 # remove all reference to it
         self.heap[self.end_of_heap] = self.null_cost+1
         self._bubble_down(heap_idx)
-        
-        
-        
 
         return length
 
@@ -134,7 +134,7 @@ class Heap():
         maintain invariant that all parents are <= children
         '''
         # make sure we do not go off the end of the heap
-        # -1 is for 0 based indexing in self.heap
+        # +1 and +2 is for 0 based indexing in self.heap
         left_idx = min(2*change_idx+1,self.end_of_heap)
         right_idx = min(2*change_idx+2,self.end_of_heap)
 
@@ -149,7 +149,8 @@ class Heap():
         else:
             right_length = self.null_cost
 
-        if (self.heap[change_idx] < left_length) and (left_idx < self.end_of_heap):
+        # the second comparision in each if statement is the base case, ie we hit the end of the heap
+        if (self.heap[change_idx] < left_length) and (left_idx < self.end_of_heap): 
             self._swap(change_idx,left_idx)
             self._bubble_down(left_idx)
         elif (self.heap[change_idx] < right_length) and (right_idx < self.end_of_heap):
@@ -174,12 +175,39 @@ class Heap():
         self.heap_vertex[source_idx] = self.heap_vertex[destination_idx]
         self.heap_vertex[destination_idx] = tmp
 
-#G = Graph("course2/test_assignment2/input_random_1_4.txt",testing=True)
-#print(G.output)
+    def __len__(self):
+        return self.end_of_heap-1
+
+
+
+
+def add_to_heap(h,g,tail,explored):
+    '''
+    Add all the verticies connected to tail vertex by and edge to the heap
+    h: Heap instance
+    g: Graph instance
+    tail: vertex number
+    explored: array of bools indicating if we have explored the vertex before
+    '''
+
+    for edge in g.vertex_edges[tail]:
+        head = g.edge_verticies[edge][1]
+        if not explored[head]:
+            length = g.edge_lengths[edge]
+            previous_length = h.delete(head)
+            new_length = min(length,previous_length)
+            h.insert(head,new_length)
+
+
+G = Graph("course2/test_assignment2/input_random_1_4.txt",testing=True)
+explored = [False for n in range(G.num_verticies+1)]
+
 
 verticies = [1,2,3,4,5]
 lengths = [5,3,9,1,2]
 num_verticies = len(verticies)
+
+
 h = Heap(num_verticies=num_verticies)
 
 for ii in range(num_verticies):
