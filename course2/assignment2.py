@@ -70,43 +70,101 @@ class Heap():
         num_verticies are the total number of verticies in the graph
         first_vertex is the first vertex that the alogrithm is working on, it should be set to length=0
         '''
-
-        # keys[idx] is the heap
-        self.keys = [1e5 for n in range(num_verticies+1)]
+        self.null_cost = 1e5 # theoretical max value
         
-        # keys[vertex_key[vertex]] gives the shortest length to vertex along an edge that crosses the frontier
-        # vertex_key tracks the location of the key for a vertex in the heap
-        # when ever the heap is modified vertex_key needs to be updated accordingly
-        self.vertex_key = [-1 for n in range(num_verticies+1)]
+        # the max number of items that we can ever see is the number of verticies in the graph
+        # Add 1 to this so that we can deal with 1 based vertex numbers in vertex_heap
+        # Add an additiona 1 to this so that when we bubble down and try to compare off the end of the heap, we can redirect them to the 
+        #   a value that is gaurentteed to never have an associated vertex and thus never have a length less than null_cost
+        self.max_heap_size = num_verticies+2 
 
-        #initialize first_vertex
-        self.keys[0] = 0
-        self.vertex_key[first_vertex] = 0 # the index of first_vertex in keys (ie the length) is 0
+        self.heap = [self.null_cost for n in range(self.max_heap_size)]
+        self.heap_vertex = [-1 for n in range(self.max_heap_size)]
+        self.vertex_heap = [-1 for n in range(self.max_heap_size)]
+        self.end_of_heap = 0 # the index in self.heap of the first item not included, ie the index where an item can be inserted
 
     def extract_min(self):
         '''
         Remove the minimum key value from the heap, return (vertex,length)
         '''
-        pass
+        vertex = self.heap_vertex[0]
+        length = self.delete(vertex)
+        return (vertex,length)
 
     def insert(self,vertex,length):
         '''
         Add the length to vertex to the heap
         '''
-        pass
+        self.heap[self.end_of_heap] = length
+        self.heap_vertex[self.end_of_heap] = vertex
+        self.vertex_heap[vertex] = self.end_of_heap
+        self._bubble_up(self.end_of_heap)
+        self.end_of_heap += 1
 
     def delete(self,vertex):
         '''
         remove everything associated with vertex from the heap
         return the length for vertex
         '''
-        pass
+        heap_idx = self.vertex_heap[vertex]
+        length = self.heap[heap_idx]
+        self._swap(heap_idx,self.end_of_heap-1)
+        self._bubble_down(heap_idx)
+        self.heap[self.end_of_heap] = self.null_cost
+        self.end_of_heap -= 1
 
-    def _bubble_up(self):
-        pass
-    def _bubble_down(self):
-        pass
+        return length
 
+    def _bubble_up(self,change_idx):
+        '''
+        maintain the invariant that all parents are >= children
+        '''
+        parent_idx = change_idx//2
+        if self.heap[parent_idx] < self.heap[change_idx]:
+            self._swap(parent_idx,change_idx)
+            self._bubble_up(parent_idx)
+
+    def _bubble_down(self,change_idx):
+        '''
+        maintain invariant that all parents are >= children
+        '''
+        # make sure we do not go off the end of the heap
+        # -1 is for 0 based indexing in self.heap
+        left_idx = min(2*change_idx,self.max_heap_size-1)
+        right_idx = min(2*change_idx+1,self.max_heap_size-1)
+
+        left_length = self.heap[left_idx]
+        right_length = self.heap[right_idx]
+
+        if left_length > right_length:
+            left_length = self.null_cost
+        else:
+            right_length = self.null_cost
+
+        if self.heap[change_idx] < left_length:
+            self._swap(change_idx,left_idx)
+            self._bubble_down(left_idx)
+        elif self.heap[change_idx] < right_length:
+            self._swap(change_idx,right_idx)
+            self._bubble_down(right_idx)
+
+    def _swap(self,source_idx,destination_idx):
+        '''
+        Utility function to swap 2 items in the heap
+        updates all the corresponding arrays
+        Does not validate that the swap maintains the invariants!
+        '''
+        tmp = self.heap[source_idx]
+        self.heap[source_idx] = self.heap[destination_idx]
+        self.heap[destination_idx] = tmp
+        
+        tmp = self.vertex_heap[source_idx]
+        self.vertex_heap[source_idx] = self.vertex_heap[destination_idx]
+        self.vertex_heap[destination_idx] = tmp
+        
+        tmp = self.heap_vertex[source_idx]
+        self.heap_vertex[source_idx] = self.heap_vertex[destination_idx]
+        self.heap_vertex[destination_idx] = tmp
 
 G = Graph("course2/test_assignment2/input_random_1_4.txt",testing=True)
 print(G.output)
