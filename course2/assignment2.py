@@ -65,13 +65,13 @@ class Heap():
     There are 2 lists: the keys which are the distances from vertex s to w and the 
     '''
 
-    def __init__(self,num_verticies,first_vertex=0):
+    def __init__(self,num_verticies):
         '''
         num_verticies are the total number of verticies in the graph
-        first_vertex is the first vertex that the alogrithm is working on, it should be set to length=0
         '''
-        self.null_cost = 1e5 # theoretical max value
+        self.null_cost = int(1e5) # theoretical max value
         
+        self.num_verticies = num_verticies
         # the max number of items that we can ever see is the number of verticies in the graph
         # Add 1 to this so that we can deal with 1 based vertex numbers in vertex_heap
         # Add an additiona 1 to this so that when we bubble down and try to compare off the end of the heap, we can redirect them to the 
@@ -108,43 +108,51 @@ class Heap():
         '''
         heap_idx = self.vertex_heap[vertex]
         length = self.heap[heap_idx]
-        self._swap(heap_idx,self.end_of_heap-1)
+        
+        self._swap(heap_idx,self.end_of_heap-1) #move value to be deleted to end of array
+        self.end_of_heap -= 1 # move the end of the heap marker
+        self.heap_vertex[self.end_of_heap] = -9 # remove all reference to it
+        self.heap[self.end_of_heap] = self.null_cost+1
         self._bubble_down(heap_idx)
-        self.heap[self.end_of_heap] = self.null_cost
-        self.end_of_heap -= 1
+        
+        
+        
 
         return length
 
     def _bubble_up(self,change_idx):
         '''
-        maintain the invariant that all parents are >= children
+        maintain the invariant that all parents are <= children
         '''
         parent_idx = change_idx//2
-        if self.heap[parent_idx] < self.heap[change_idx]:
+        if self.heap[parent_idx] > self.heap[change_idx]:
             self._swap(parent_idx,change_idx)
             self._bubble_up(parent_idx)
 
     def _bubble_down(self,change_idx):
         '''
-        maintain invariant that all parents are >= children
+        maintain invariant that all parents are <= children
         '''
         # make sure we do not go off the end of the heap
         # -1 is for 0 based indexing in self.heap
-        left_idx = min(2*change_idx,self.max_heap_size-1)
-        right_idx = min(2*change_idx+1,self.max_heap_size-1)
+        left_idx = min(2*change_idx+1,self.end_of_heap)
+        right_idx = min(2*change_idx+2,self.end_of_heap)
 
         left_length = self.heap[left_idx]
         right_length = self.heap[right_idx]
 
+        # If the value is less than both left and right, we want to swap with the smaller of the 2
+        # This makes it so there is only ever 1 child that is less than our value
+        #   which makes it the code for comparision to our value not need multiple comparisions in each if statement
         if left_length > right_length:
             left_length = self.null_cost
         else:
             right_length = self.null_cost
 
-        if self.heap[change_idx] < left_length:
+        if (self.heap[change_idx] < left_length) and (left_idx < self.end_of_heap):
             self._swap(change_idx,left_idx)
             self._bubble_down(left_idx)
-        elif self.heap[change_idx] < right_length:
+        elif (self.heap[change_idx] < right_length) and (right_idx < self.end_of_heap):
             self._swap(change_idx,right_idx)
             self._bubble_down(right_idx)
 
@@ -158,13 +166,32 @@ class Heap():
         self.heap[source_idx] = self.heap[destination_idx]
         self.heap[destination_idx] = tmp
         
-        tmp = self.vertex_heap[source_idx]
-        self.vertex_heap[source_idx] = self.vertex_heap[destination_idx]
-        self.vertex_heap[destination_idx] = tmp
+        tmp = self.vertex_heap[self.heap_vertex[source_idx]]
+        self.vertex_heap[self.heap_vertex[source_idx]] = self.vertex_heap[self.heap_vertex[destination_idx]]
+        self.vertex_heap[self.heap_vertex[destination_idx]] = tmp
         
         tmp = self.heap_vertex[source_idx]
         self.heap_vertex[source_idx] = self.heap_vertex[destination_idx]
         self.heap_vertex[destination_idx] = tmp
 
-G = Graph("course2/test_assignment2/input_random_1_4.txt",testing=True)
-print(G.output)
+#G = Graph("course2/test_assignment2/input_random_1_4.txt",testing=True)
+#print(G.output)
+
+verticies = [1,2,3,4,5]
+lengths = [5,3,9,1,2]
+num_verticies = len(verticies)
+h = Heap(num_verticies=num_verticies)
+
+for ii in range(num_verticies):
+    h.insert(verticies[ii],lengths[ii])
+    #print(h.heap)
+    #print(h.heap_vertex)
+    #print()
+
+for ii in range(num_verticies):
+    
+    print(h.heap)
+    print(h.heap_vertex)
+    print(h.extract_min())
+    print()
+    
