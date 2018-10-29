@@ -14,7 +14,7 @@ class Graph():
 
         fname structure:
         * Each line is a vertex
-        * The number at the start of the line is the vertex number
+        * The number at the start of the line is added_to_heap_by[1] = the vertex number
         * On each line there are comma seperated tuples of (head_vertex,edge_lenght)
         * If there are more than 1 edge for each vertex, the additional edges are seperated by tabs
         '''
@@ -23,14 +23,17 @@ class Graph():
         self.edge_verticies = {}
         self.edge_lengths = {}
         self.shortest_path = {}
+        self.paths = {}
         self.num_edges = 0
         self.num_verticies = 0
 
-        self.output = None
-        self.paths = {}
+        self.true_output = None
+        self.true_paths = {}
 
         with open(fname,'r') as f:
             for line in f.readlines():
+                if line[0] == "#":
+                    continue
                 line_split = line.split("\t")
 
                 vertex = int(line_split[0])
@@ -40,7 +43,6 @@ class Graph():
                     edge_split = edge.strip("\n").split(",")
                     self.num_edges+=1
                     self.vertex_edges[vertex].append(self.num_edges)
-
                     self.edge_verticies.update({self.num_edges:[vertex,int(edge_split[0])]})
                     self.edge_lengths.update({self.num_edges:int(edge_split[1])})
         
@@ -48,7 +50,7 @@ class Graph():
             result_fname = fname.replace("input","output")
             with open(result_fname,'r') as f:
                 line = f.readline()
-                self.output = [int(x) for x in line.strip("\n").split(",")]
+                self.true_output = [int(x) for x in line.strip("\n").split(",")]
             result_fname= fname.replace("input","paths")
             
             with open(result_fname,'r') as f:
@@ -56,8 +58,14 @@ class Graph():
                     line_split = line.strip("\n").split(" => path => ")
                     end = int(line_split[0])
                     path_verticies = [int(x) for x in line_split[1].split(",")]
-                    self.paths.update({end:path_verticies})
-                    
+                    self.true_paths.update({end:path_verticies})
+
+    def initialize_shortest_path(self,start_vertex=1):
+        '''
+        initialize self.shortest_path dict by setting the length of start_vertex to 0
+        '''            
+        self.shortest_path.update({start_vertex:0})
+        self.paths.update({start_vertex:[start_vertex]})
 
 class Heap():
     '''
@@ -176,50 +184,76 @@ class Heap():
         self.heap_vertex[destination_idx] = tmp
 
     def __len__(self):
-        return self.end_of_heap-1
+        return self.end_of_heap
+
+    def force_validate(self):
+        '''
+        Go through the tree vertex by vertex and verify that every child is greater or equal to its parent
+        '''
+        
 
 
 
 
-def add_to_heap(h,g,tail,explored):
+
+def add_to_heap(h,g,tail,explored,added_to_heap_by):
     '''
     Add all the verticies connected to tail vertex by and edge to the heap
     h: Heap instance
     g: Graph instance
     tail: vertex number
     explored: array of bools indicating if we have explored the vertex before
+    added_to_heap_by: array of integers indicating the tail that added this vertex to the heap
+
+    returns an updated added_to_heap array
     '''
 
     for edge in g.vertex_edges[tail]:
         head = g.edge_verticies[edge][1]
         if not explored[head]:
+            if head == 7:
+                print("vertex7")
             length = g.edge_lengths[edge]
-            previous_length = h.delete(head)
-            new_length = min(length,previous_length)
-            h.insert(head,new_length)
 
+            # if the head is already on the heap, added_to_heap_by[head]==-1 means it has not been added yet
+            if added_to_heap_by[head] >= 0:
+                previous_length = h.delete(head)
+                if length > previous_length:
+                    length = previous_length
+                    #added_to_heap_by[head] = added_to_heap_by[head] no need to update this
+                else:
+                    #length = length no need to update this
+                    added_to_heap_by[head] = tail
+            else:
+                added_to_heap_by[head] = tail
+            h.insert(head,length)
 
+    return added_to_heap_by
+
+verticies_to_check = [7,37,59,82,99,115,133,165,188,197]
 G = Graph("course2/test_assignment2/input_random_1_4.txt",testing=True)
+G.initialize_shortest_path(1)
 explored = [False for n in range(G.num_verticies+1)]
+added_to_heap_by = [-1 for n in range(G.num_verticies+1)]
+explored[1] = True
 
+h = Heap(num_verticies=G.num_verticies)
+added_to_heap_by = add_to_heap(h,G,1,explored,added_to_heap_by)
+while len(h) > 0:
+    w,length = h.extract_min()
+    G.shortest_path.update({w:G.shortest_path[added_to_heap_by[w]]+length})
+    print("{}: {}".format(w,length))
 
-verticies = [1,2,3,4,5]
-lengths = [5,3,9,1,2]
-num_verticies = len(verticies)
+    path_to_current = G.paths[added_to_heap_by[w]].copy()
+    path_to_current.append(w)
+    G.paths.update({w:path_to_current})
 
+    explored[w] = True
+    added_to_heap_by = add_to_heap(h,G,w,explored,added_to_heap_by)
 
-h = Heap(num_verticies=num_verticies)
+for ii,vertex in enumerate(verticies_to_check):
+    #assert G.shortest_path[vertex] == G.output[ii]
+    print("Vertex {}: {} == {}".format(vertex,G.shortest_path[vertex], G.true_output[ii]))
 
-for ii in range(num_verticies):
-    h.insert(verticies[ii],lengths[ii])
-    #print(h.heap)
-    #print(h.heap_vertex)
-    #print()
-
-for ii in range(num_verticies):
-    
-    print(h.heap)
-    print(h.heap_vertex)
-    print(h.extract_min())
-    print()
-    
+for ii,vertex in enumerate(verticies_to_check):
+    print("Vertex {}: {} == {}\n".format(vertex,G.paths[vertex], G.true_paths[vertex]))
