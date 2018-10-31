@@ -270,9 +270,11 @@ verticies_to_check = [7,37,59,82,99,115,133,165,188,197]
 base_path = "course2/test_assignment2/"
 input_files = [os.path.join(base_path,f) for f in os.listdir(base_path) if "input" in f]
 
+import time
+start_time = time.time()
 for f in input_files:
-    if int(f[f.rfind("_")+1:-4]) > 15:
-        continue
+    #if int(f[f.rfind("_")+1:-4]) > 15:
+    #    continue
     print(f)
     G = Dijkstra(f,testing=True)
 
@@ -288,8 +290,10 @@ for f in input_files:
 
 
 print("All tests passed!")
-
+print("Testing took {:.3f} seconds".format(time.time()-start_time))
 input_files = [os.path.join(base_path,"input_random_4_4.txt")]
 G = Dijkstra("course2/assignment2_input.txt",testing=False)
 for v in verticies_to_check:
     print(G.shortest_path[v])
+
+print("Total time: {:.3f} seconds".format(time.time()-start_time))
