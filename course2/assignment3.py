@@ -1,73 +1,14 @@
 '''
-Algorithms: Dijkstra's algorithm for shortest path between 1 vertex and every other vertex in a graph
+Course 2 Week 3 Assignment: Median Maintenance
+Given a stream of numbers track the median value using heaps.
 
+In this case the stream of numbers is a text file being read line by line.
+The output of this program is: sum(all median values) mod 10000
 
+Going to leverage the heap data structure from last weeks assignment. 
 '''
+
 import os
-
-class Graph():
-
-    def __init__(self,fname,testing=False):
-        '''
-        read in the graph defined in fname
-        if testing, read in the test results by subsituting 'output' for 'input' in fname
-
-        fname structure:
-        * Each line is a vertex
-        * The number at the start of the line is added_to_heap_by[1] = the vertex number
-        * On each line there are comma seperated tuples of (head_vertex,edge_lenght)
-        * If there are more than 1 edge for each vertex, the additional edges are seperated by tabs
-        '''
-
-        self.vertex_edges = {}
-        self.edge_verticies = {}
-        self.edge_lengths = {}
-        self.shortest_path = {}
-        self.paths = {}
-        self.num_edges = 0
-        self.num_verticies = 0
-
-        self.true_output = None
-        self.true_paths = {}
-
-        with open(fname,'r') as f:
-            for line in f.readlines():
-                if line[0] == "#":
-                    continue
-                line_split = line.strip("\n").split("\t")
-
-                vertex = int(line_split[0])
-                self.num_verticies += 1
-                self.vertex_edges.update({vertex:[]})
-                for edge in line_split[1:]:
-                    edge_split = edge.strip("\n").split(",")
-                    if edge_split == [""]:
-                        continue
-                    self.num_edges+=1
-                    self.vertex_edges[vertex].append(self.num_edges)
-                    self.edge_verticies.update({self.num_edges:[vertex,int(edge_split[0])]})
-                    self.edge_lengths.update({self.num_edges:int(edge_split[1])})
-        
-        if testing:
-            result_fname = fname.replace("input","output")
-            with open(result_fname,'r') as f:
-                line = f.readline()
-                self.true_output = [int(x) for x in line.strip("\n").split(",")]
-            result_fname= fname.replace("input","paths")
-            
-            with open(result_fname,'r') as f:
-                for line in f.readlines():
-                    line_split = line.strip("\n").split(" => path => ")
-                    end = int(line_split[0])
-                    path_verticies = [int(x) for x in line_split[1].split(",")]
-                    self.true_paths.update({end:path_verticies})
-
-    def initialize_shortest_path(self,start_vertex=1):
-        '''
-        initialize self.shortest_path dict by setting the length of start_vertex to 0
-        '''            
-        self.shortest_path.update({start_vertex:0})
-        self.paths.update({start_vertex:[start_vertex]})
 
 class Heap():
     '''
@@ -104,6 +45,12 @@ class Heap():
         length = self.delete(vertex)
         #self.check_heap("extract_min")
         return (vertex,length)
+
+    def read_min(self):
+        '''
+        Return the min value key from the heap. Do not modify the heap
+        '''
+        return self.heap[0]
 
     def insert(self,vertex,length):
         '''
@@ -208,92 +155,73 @@ class Heap():
                 assert self.heap[right_idx] >= self.heap[ii],'{} Right failed at idx {} with {} and {}'.format(call_from,ii,self.heap[right_idx],self.heap[ii])
         print("{} heap test passed".format(call_from))
 
-def add_to_heap(h,g,tail,explored,added_to_heap_by):
-    '''
-    Add all the verticies connected to tail vertex by and edge to the heap
-    h: Heap instance
-    g: Graph instance
-    tail: vertex number
-    explored: array of bools indicating if we have explored the vertex before
-    added_to_heap_by: array of integers indicating the tail that added this vertex to the heap
 
-    returns an updated added_to_heap array
+def read_input(fname,testing=False):
+    '''
+    Read an input file, if testing also read output file
+
+    if not testing expected result is None
+
+    return (list of values, expected result)
     '''
 
-    for edge in g.vertex_edges[tail]:
-        head = g.edge_verticies[edge][1]
-        if not explored[head]:
-            proposed_length = g.shortest_path[tail] + g.edge_lengths[edge]
+    output = None
 
-            # if the head is already on the heap, added_to_heap_by[head]==-1 means it has not been added yet
-            if added_to_heap_by[head] >= 0:
-                previous_length = h.delete(head)
-                if proposed_length > previous_length:
-                    new_length = previous_length
-                else:
-                    new_length = proposed_length
-                    added_to_heap_by[head] = tail
-            else:
-                new_length = proposed_length
-                added_to_heap_by[head] = tail
+    with open(fname,'r') as f:
+        input = [int(l) for l in f.readlines()]
 
-            h.insert(head,new_length)
+    if testing:
+        fname = fname.replace("input","output")
+        with open(fname,'r') as f:
+            output = int(f.readline())
 
-    return added_to_heap_by
+        return (input,output)
+    else:
+        return (input,output)
 
-def Dijkstra(fname,testing=False):
+def median_maintenance(input):
     '''
-    run Dijkstra's shortest path alogrithm on the graph defined in fname
+    Run the median maintenance algorith using the input as a data stream
+    returns the sum(all medians over time)%10000
     '''
-    G = Graph(fname,testing=testing)
-    G.initialize_shortest_path(1)
-    explored = [False for n in range(G.num_verticies+1)]
-    added_to_heap_by = [-1 for n in range(G.num_verticies+1)]
-    explored[1] = True
+    median = None
+    median_history = 0
+    H1 = Heap(len(input))
+    H2 = Heap(len(input))
 
-    h = Heap(num_verticies=G.num_verticies)
-    added_to_heap_by = add_to_heap(h,G,1,explored,added_to_heap_by)
-    while len(h) > 0:
-        w,length = h.extract_min()
-        G.shortest_path.update({w:length})
+    counter = -1
+    while len(input) > 0:
+        counter += 1
+        new_value = input.pop(0)
 
-        path_to_current = G.paths[added_to_heap_by[w]].copy()
-        path_to_current.append(w)
-        G.paths.update({w:path_to_current})
+        if new_value > -H1.read_min():
+            H2.insert(counter,new_value)
+        else:
+            H1.insert(counter,-new_value)
+        
+        if len(H1) > len(H2) +1:
+            c,value = H1.extract_min()
+            H2.insert(c,-value)
+        elif len(H2) > len(H1):
+            c,value = H2.extract_min()
+            H1.insert(c,-value)
+        
+        median = -H1.read_min()
+        median_history += median
+    return median_history%10000
+    
 
-        explored[w] = True
-        added_to_heap_by = add_to_heap(h,G,w,explored,added_to_heap_by)
+base_path = "course2/test_assignment3"
+test_cases = [x for x in os.listdir(base_path) if "input" in x]
 
-    return G
-
-verticies_to_check = [7,37,59,82,99,115,133,165,188,197]
-base_path = "course2/test_assignment2/"
-input_files = [os.path.join(base_path,f) for f in os.listdir(base_path) if "input" in f]
-
-import time
-start_time = time.time()
-for f in input_files:
-    #if int(f[f.rfind("_")+1:-4]) > 15:
-    #    continue
-    print(f)
-    G = Dijkstra(f,testing=True)
-
-    for ii,vertex in enumerate(verticies_to_check):
-        if vertex in G.shortest_path.keys():
-            print("Vertex {}: {} == {}".format(vertex,G.shortest_path[vertex], G.true_output[ii]))
-        assert G.shortest_path[vertex] == G.true_output[ii]
-
-    for ii,vertex in enumerate(verticies_to_check):
-        if vertex in G.shortest_path.keys():
-            print("Vertex {}: {} == {}\n".format(vertex,G.paths[vertex], G.true_paths[vertex]))
-        assert G.paths[vertex] == G.true_paths[vertex]
+for fname in test_cases:
+    (input,output) = read_input(os.path.join(base_path,fname),testing=True)
+    solution = median_maintenance(input)
+    print("Solution: {} Expected: {}".format(solution,output))
 
 
-print("All tests passed!")
-print("Testing took {:.3f} seconds".format(time.time()-start_time))
-input_files = [os.path.join(base_path,"input_random_4_4.txt")]
-G = Dijkstra("course2/assignment2_input.txt",testing=False)
-for v in verticies_to_check:
-    print(G.shortest_path[v])
-
-print("Total time: {:.3f} seconds".format(time.time()-start_time))
+base_path = "course2"
+(input,output) = read_input(os.path.join(base_path,"assignment3_input.txt"),testing=False)
+solution = median_maintenance(input)
+print("Assignemnt solution: {}".format(solution))
+    
