@@ -8,3 +8,9 @@ Implement Dijkstra's alogrith for shortest path and run report the shortest dist
 
 ## Week 3 Assignment: Median Maintenance
 Implement median maintenance using 2 heaps. I implemented this using the same heap data structure as last week using a dummy value for the vertex and multipling the values in the lower heap by -1. This meant that I only had to write the logic of what heap to add to. I made it so that the medain value is always the max value on the lower heap which made it very easy to handle. Overall I only had to add 1 method to the heap function, read_min(). This was purely to make the code faster as it did not have to do O(log(n)) for delete() and O(log(n)) for insert() whenever we just need to read/compare to the minimum value of the heap.
+
+## Week 4 Assignment: 2 sum problem
+Given a list of numbers, count how many distinct values of t can be reached when t is in a specified range.
+
+This problem was assigned to be done with hash functions, but without involving another data structure it is really really slow, on the order of 30+ minutes for the final solution.
+I also implemented this using 2 pointers into an array and smartly moving them around, which gives a running time of ~1.0 seconds! That solution is in the assignment4_list_pointers.py file, and an analysis of the running time is broken down, along with the pathological case where the method devolves into O(n**2) time.
