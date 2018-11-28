@@ -12,10 +12,7 @@ Go through and add jobs to heap bases on criteria, then extract them all off.
 '''
 import os
 import sys
-#sys.setrecursionlimit =100000
 sys.path.append("/home/neil/Algorithms_specialization")
-for p in sys.path:
-    print(p)
 from helpers.Heap import Heap
 
 def read_data(fname,testing=False):
