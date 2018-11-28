@@ -59,7 +59,9 @@ def q2_heap(weights,lengths):
 
 def get_sum_weighted_times(h,weights,lengths,elapsed_time=0):
     '''
-    Need to deal with non unique costs....
+    Get the sum of weighted completion times for a given heap.
+    This handles the cases of matching costs in the heap by choosing the largest weight
+    returns elapsed_time,weighted_times
     '''
     weighted_times = 0
     while (len(h) > 0):
