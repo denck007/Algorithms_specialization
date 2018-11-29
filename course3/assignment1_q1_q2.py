@@ -1,5 +1,5 @@
 '''
-Course 3, Week1: INtro to greedy algorithms
+Course 3, Week1: INtro to greedy algorithms, Assignment 1: Q1 and Q2
 
 Given a listing of positive weights and lengths for jobs, schedul the jobs using 2 different methods
 
