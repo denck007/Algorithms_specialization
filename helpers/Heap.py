@@ -18,8 +18,8 @@ class Heap():
         self.max_heap_size = num_ids+2 
 
         self.heap = [self.null_cost for n in range(self.max_heap_size)]
-        self.heap_id = [-1 for n in range(self.max_heap_size)]
-        self.id_heap = [-1 for n in range(self.max_heap_size)]
+        self.heap_id = [self.null_cost for n in range(self.max_heap_size)]
+        self.id_heap = [self.null_cost for n in range(self.max_heap_size)]
         self.end_of_heap = 0 # the index in self.heap of the first item not included, ie the index where an item can be inserted
 
     def extract_min(self):
