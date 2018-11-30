@@ -53,7 +53,7 @@ class Heap():
 
         self._swap(heap_idx,self.end_of_heap-1) #move value to be deleted to end of array
         self.end_of_heap -= 1 # move the end of the heap marker
-        self.heap[self.end_of_heap] = self.null_cost+3
+        self.heap[self.end_of_heap] = self.null_cost
         self._bubble_down(heap_idx)
         self._bubble_up(heap_idx)
         #self.check_heap("delete")
