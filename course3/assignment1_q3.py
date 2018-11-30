@@ -94,16 +94,21 @@ def prims(fname,testing=False):
     Run Prim's Minimum Span Tree algorithom on graph a graph defined in fname
     returns the total cost and the graph
     '''
+    # initialize structures
     g = Graph(fname,testing=testing)
     h = Heap(g.num_verticies)
     seen = [False for x in range(g.num_verticies+1)]
 
+    # Start at any vertex, the provided graphs all start at node 1, so using that
     source_vertex = 1
     seen[source_vertex] = True
     h = add_edge_from_vertex(source_vertex,h,g,seen)
     
     total_cost = 0
     
+    # keep extracting the minimum cost edge from the heap and 
+    #  update/create the lowest cost edges to any vertex that is connected to an edge from
+    #  the extracted vertex
     while len(h) > 0:
         vertex,cost = h.extract_min()
         seen[vertex] = True
@@ -114,10 +119,8 @@ def prims(fname,testing=False):
 
 base_path = "course3/test_assignment1/question3"
 fnames = [f for f in os.listdir(base_path) if "input" in f]
-#fnames = ["input_random_1_10.txt"]
 
 for fname in fnames:
-
     testing = True
     total_cost,g = prims(os.path.join(base_path,fname),testing=testing)
 
