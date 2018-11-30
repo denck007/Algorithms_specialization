@@ -65,7 +65,7 @@ def add_edge_from_vertex(source_vertex,h,g,seen):
 
     for edge in g.vertex_edges[source_vertex]:
         # the graph is undirected to need to look at both ends
-        u,v = g.vertex_edges[edge]
+        u,v = g.edge_verticies[edge]
 
         # flag which vertex of the edge has not been seen
         #   this is the vertex we want to add to the heap
@@ -74,20 +74,65 @@ def add_edge_from_vertex(source_vertex,h,g,seen):
         elif not seen[v]:
             to_explore = v
         else:
-            assert False, "invalid vertex to explore!"
+            continue
         
-        if to_explore in h:
+        if h.id_heap[to_explore] < h.null_cost:
             # if we have already found an edge to this vertex, we want to make sure we
             #    are only looking at the cheapest edge
             min_cost = h.delete(to_explore)
-            min_cost = min(min_cost,g.edge_cost[edge])
+            min_cost = min(min_cost,g.edge_costs[edge])
         else:
             # if the vertex has never been added to the heap,
             #   the cheapest edge to the vertex is the current edge
-            min_cost = g.edge_cost[edge]
+            min_cost = g.edge_costs[edge]
         h.insert(to_explore,min_cost) # add the cheapest edge to the heap
 
     return h
 
+def prims(fname,testing=False):
+    '''
+    Run Prim's Minimum Span Tree algorithom on graph a graph defined in fname
+    returns the total cost and the graph
+    '''
+    g = Graph(fname,testing=testing)
+    h = Heap(g.num_verticies)
+    seen = [False for x in range(g.num_verticies+1)]
+
+    source_vertex = 1
+    seen[source_vertex] = True
+    h = add_edge_from_vertex(source_vertex,h,g,seen)
+    
+    total_cost = 0
+    
+    while len(h) > 0:
+        vertex,cost = h.extract_min()
+        seen[vertex] = True
+        total_cost += cost
+        h = add_edge_from_vertex(vertex,h,g,seen)
+
+    return total_cost,g
+
+base_path = "course3/test_assignment1/question3"
+fnames = [f for f in os.listdir(base_path) if "input" in f]
+#fnames = ["input_random_1_10.txt"]
+
+for fname in fnames:
+
+    testing = True
+    total_cost,g = prims(os.path.join(base_path,fname),testing=testing)
+
+    if testing:
+        if g.true_output == total_cost:
+            print("Correct: {} Got {}".format(fname,total_cost))
+        else:
+            print("Error: {} Got {} Expected {}".format(fname,total_cost,g.true_output))
+
+
+print("Starting Final output:")
+
+fname = "course3/assignment1_q3_input.txt"
+
+total_cost,g = prims(fname)
+print("Final solution to problem: {}".format(total_cost))
 
 
