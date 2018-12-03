@@ -39,12 +39,9 @@ class UnionFind():
         Given an id of an item, return the name of the group it belongs to.
         Does this by following parents
         '''
-        #print("\t\t{} ".format(id),end="")
         while self.parent[id] != self.parent[self.parent[id]]:
             id = self.parent[id]
-            #print(" {}".format(id),end="")
         id = self.parent[id]
-        #print()
         return id
 
     def union(self,id1,id2):
@@ -63,7 +60,6 @@ class UnionFind():
         parent1 = self.find(id1)
         parent2 = self.find(id2)
         if parent1 != parent2:
-            #print("\tDifferent parents child:parent {}:{} {}:{}".format(id1,parent1,id2,parent2))
             # different parents so merge
             children1 = self.num_children[parent1]
             children2 = self.num_children[parent2]
@@ -71,9 +67,18 @@ class UnionFind():
                 self.union(parent1,parent2)
             else: # also covers case of equal number of children
                 self.union(parent2,parent1)
-            #print("\t      New parents child:parent {}:{} {}:{}".format(id1,self.find(id1),id2,self.find(id2)))
-        #else:
-            #print("\tSame parents: {}:{} {}:{}".format(id1,parent1,id2,parent2))
+
+    def same_parents(self,id1,id2):
+        '''
+        Return True if id1 and id2 have the same parents/are in same cluster.
+        Otherwise return False
+        '''
+        parent1 = self.find(id1)
+        parent2 = self.find(id2)
+        if parent1 == parent2:
+            return True
+        else:
+            return False
 
 class Graph():
     '''
@@ -119,7 +124,11 @@ class Kruskal():
 
     '''
     def __init__(self,fname,num_clusters,testing=False):
-
+        '''
+        initialize the algorithm by:
+            loading the data
+            creating graph, heap, and union find data structures
+        '''
         self.fname = fname
         self.num_clusters=num_clusters
         self.testing = testing
@@ -130,9 +139,11 @@ class Kruskal():
         if testing:
             self.ground_truth = self.g.solution
 
-    
     def __call__(self):
-        
+        '''
+        When the object is called run the clustering algorithm
+        Returns the max spacing between clusters
+        '''        
         for edge in range(len(self.g.costs)):
             self.h.insert(edge,self.g.costs[edge])
 
@@ -146,8 +157,14 @@ class Kruskal():
             self.uf.union_if_unique(u,v)
             _ = 1
             
+        # want the max distances between clusters, so need to find the next largest
+        #   distance for edges not in same cluster
         edge,cost = self.h.extract_min()
-        #edge,cost = self.h.extract_min()
+        u,v = self.g.edge_verticies[edge]
+        while self.uf.same_parents(u,v):
+            edge,cost = self.h.extract_min()
+            u,v = self.g.edge_verticies[edge]
+        
         self.max_spacing = cost
         return self.max_spacing
 
@@ -164,23 +181,20 @@ class Kruskal():
             print("Predicted solution: {}".format(self.max_spacing))
 
 base_path = "course3/test_assignment2/question1"
-fname = "input_completeRandom_4_8.txt"
-
-kruskal = Kruskal(os.path.join(base_path,fname),num_clusters=4,testing=True)
-solution = kruskal()
-kruskal.evaluate_solution()
-
-
-
 for fname in os.listdir(base_path):
     if "input" not in fname:
         continue
     kruskal = Kruskal(os.path.join(base_path,fname),num_clusters=4,testing=True)
     solution = kruskal()
     kruskal.evaluate_solution()
-    
 
+print("Staring final problem:")
+base_path = "course3/"
+fname = "assignment2_q1.txt"
 
+kruskal = Kruskal(os.path.join(base_path,fname),num_clusters=4,testing=False)
+solution = kruskal()
+kruskal.evaluate_solution()
 
 
     
