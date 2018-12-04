@@ -55,7 +55,7 @@ class HammingCluster():
         self.data = []
         for line in data[1:]:
             vals = []
-            for val in line:
+            for val in line.strip().split():
                 if val == '1':
                     vals.append(True)
                 else:
@@ -112,11 +112,13 @@ class HammingCluster():
                         if u == v: # skip itself
                             continue
 
-
-
+                        #distance1 = 0
+                        #for idx in range(self.num_dims):
+                        #    if self.data[u][idx] == self.data[v][idx]:
+                        #        distance1 += 1
                         # this method works but is expensive!
                         distance = sum([abs(x-y) for x,y in zip(self.data[u],self.data[v]) ])
-                        
+                        assert distance == distance
                         
                         if distance <= min_distance:
                             self.heap.insert(match_id,distance)
