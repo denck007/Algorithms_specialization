@@ -32,41 +32,65 @@ class UnionFind():
         self.num_items = num_items
         self.parent = [idx for idx in range(num_items+1)] # each item's parent starts out as itself
         self.num_groups = num_items
-        self.num_children = [1 for x in range(num_items+1)] # number of children each id has
+        self.rank = [0 for x in range(num_items+1)] # number of children each id has
+        self.temp_depth = 0
+        self.temp_depth_history = []
+
+    def find_slow(self,id):
+        '''
+        Given an id of an item, return the name of the group it belongs to.
+        Does this by following parents
+        '''
+        self.temp_depth+= 1
+        while self.parent[id] != self.parent[self.parent[id]]:
+            id = self.parent[id]
+            self.temp_depth+= 1
+        id = self.parent[id]
+        return id
 
     def find(self,id):
         '''
         Given an id of an item, return the name of the group it belongs to.
         Does this by following parents
+        This modifies the parent data structure as it goes, doing path compression
         '''
-        while self.parent[id] != self.parent[self.parent[id]]:
-            id = self.parent[id]
-        id = self.parent[id]
-        return id
+        self.temp_depth += 1
+        parent_id = self.parent[id]
+        parent_parent_id = self.parent[parent_id]
+        if parent_id != parent_parent_id:
+            self.parent[id] = self.find(parent_id)
+        return self.parent[id]
 
     def union(self,id1,id2):
         '''
-        Add the items in id2 to id1
+        Merge items id1 and id2 by their rank
         '''
-        self.parent[id2] = id1
-        self.num_children[id1] += self.num_children[id2]
+        if self.rank[id1] > self.rank[id2]:
+            self.parent[id2] = id1
+        elif self.rank[id1] < self.rank[id2]:
+            self.parent[id1] = id2
+        else:
+            self.parent[id2] = id1
+            self.rank[id1] += 1
+
         self.num_groups -= 1
 
     def union_if_unique(self,id1,id2):
         '''
         If id1 and id2 are not already in the same group, merge them
         '''
-
+        self.temp_depth = 0
         parent1 = self.find(id1)
+        #print("depth: {}".format(self.temp_depth))
+        self.temp_depth_history.append(self.temp_depth)
+        self.temp_depth = 0
         parent2 = self.find(id2)
-        if parent1 != parent2:
-            # different parents so merge
-            children1 = self.num_children[parent1]
-            children2 = self.num_children[parent2]
-            if children1 > children2:# always add to the shorter list so tres stays shallow as possible
-                self.union(parent1,parent2)
-            else: # also covers case of equal number of children
-                self.union(parent2,parent1)
+        #print("depth: {}".format(self.temp_depth))
+        self.temp_depth_history.append(self.temp_depth)
+
+
+        if not self.same_parents(id1,id2):
+            self.union(parent1,parent2)
 
     def same_parents(self,id1,id2):
         '''
@@ -180,13 +204,21 @@ class Kruskal():
         else:
             print("Predicted solution: {}".format(self.max_spacing))
 
+import matplotlib.pyplot as plt
+
 base_path = "course3/test_assignment2/question1"
 for fname in os.listdir(base_path):
     if "input" not in fname:
         continue
     kruskal = Kruskal(os.path.join(base_path,fname),num_clusters=4,testing=True)
     solution = kruskal()
+    
+    print("\tAverage: {:.3f}".format(sum(kruskal.uf.temp_depth_history)/len(kruskal.uf.temp_depth_history)))
+
+    plt.plot(kruskal.uf.temp_depth_history)
+
     kruskal.evaluate_solution()
+plt.show()
 
 print("Staring final problem:")
 base_path = "course3/"
