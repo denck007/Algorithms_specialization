@@ -51,6 +51,7 @@ class list_string(list):
     def __init__(self,*args):
         list.__init__(self,*args)
         self.string = None # allows caching of the result
+    @profile
     def stringify(self):
         if self.string is None:
             self.string = ""
@@ -91,13 +92,14 @@ class HammingCluster():
                 self.data[vals] = [node]
             else:
                 self.data[vals].append(node)
+                #print("\tNot unique location found : {}".format(vals.stringify()))
 
         if testing:
             fname = fname.replace("input","output")
             with open(fname,'r') as f:
                 self.correct_solution = int(f.read())
 
-
+    @profile
     def cluster(self):
         '''
         
@@ -107,7 +109,8 @@ class HammingCluster():
             self.keys_iter += 1
             if len(self.data[key]) != 1:
                 u = self.data[key][0]
-                for v in range(1,len(self.data[key])):
+                for s_v in range(1,len(self.data[key])):
+                    v= self.data[key][s_v]
                     self.union_iter += 1
                     self.unionfind.union_if_unique(u,v)
 
@@ -138,13 +141,15 @@ class HammingCluster():
                 else:
                     u_value_new_1[idx_1] = "0"
 
-                for idx_2 in range(idx_1,self.num_dims):
+                for idx_2 in range(idx_1+1,self.num_dims):
                     self.list_string_iter += 1
                     u_value_new_2 = list_string(u_value_new_1)
+                    
                     if u_value_new_2[idx_2] == "0":
                         u_value_new_2[idx_2] = "1"
                     else:
                         u_value_new_2[idx_2] = "0"
+                    _ = u_value_new_2.stringify()
                     if u_value_new_2 in self.data:
                         v = self.data[u_value_new_2][0]
                         self.union_iter += 1
@@ -172,7 +177,7 @@ for fname in os.listdir(base_path):
     count_end = fname.rfind("_")
     count_start = fname[:count_end].rfind("_")+1
     
-    if int(fname[count_start:count_end]) > 1024:
+    if int(fname[count_start:count_end]) > 32:
         continue
     print("{}".format(fname),end="")
     start_time = time.time()
@@ -188,7 +193,7 @@ for fname in os.listdir(base_path):
     with open("output.csv",'a') as f:
         f.write("{},{},{},{},{}\n".format(hc.num_nodes,hc.num_dims,hc.keys_iter,hc.union_iter,hc.list_string_iter))
 
-
+'''
 base_path = "course3/"
 fname = "assignment2_q2.txt"
 print("Starting assignment")
@@ -197,5 +202,5 @@ hc = HammingCluster(os.path.join(base_path,fname),testing=False)
 num_groups = hc.cluster()
 print("\tGot {:4}".format(num_groups))
 print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
-
+'''
 
