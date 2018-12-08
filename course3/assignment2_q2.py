@@ -42,6 +42,28 @@ def ncr(n, r):
     denom = reduce(op.mul, range(1, r+1), 1)
     return numer//denom
 
+class list_string(list):
+    '''
+    extend the list class with the ability to turn it into a string
+        of just the elements
+    Not elegent, but handy
+    '''
+    def __init__(self,*args):
+        list.__init__(self,*args)
+        self.string = None # allows caching of the result
+    def stringify(self):
+        if self.string is None:
+            self.string = ""
+            for idx in range(self.__len__()):
+                self.string += str(self.__getitem__(idx))
+        return self.string
+    def __hash__(self):
+        return hash(self.stringify())
+    def __copy__(self):
+        self.string = None
+        self.stringify()
+
+
 class HammingCluster():
     def __init__(self,fname,testing=False):
         '''
@@ -51,181 +73,98 @@ class HammingCluster():
         self.testing = testing
 
         self.keys_iter = 0
-        self.s_u_iter = 0
-        self.s_v_iter = 0
-        self.distance_iter = 0
+        self.union_iter = 0
+        self.list_string_iter = 0
 
         with open(fname,'r') as f:
             data = f.readlines()
         self.num_nodes = int(data[0].strip().split()[0]) # number of nodes in the graph
         self.num_dims = int(data[0].strip().split()[1]) # number of dimensions the node has, number of values it has
-        self.data = []
-        for line in data[1:]:
-            vals = []
-            for val in line.strip().split():
-                if val == '1':
-                    vals.append(True)
-                else:
-                    vals.append(False)
-            self.data.append(vals)
+        
+        self.unionfind = UnionFind(self.num_nodes)
+
+        self.data = {}
+        for node,line in enumerate(data[1:]):
+            vals = list_string(line.strip().split())
+
+            if vals not in self.data:
+                self.data[vals] = [node]
+            else:
+                self.data[vals].append(node)
 
         if testing:
             fname = fname.replace("input","output")
             with open(fname,'r') as f:
                 self.correct_solution = int(f.read())
 
-    def sum_dims_at_nodes(self):
-        '''
-        Go over all the nodes and sum up the number of 1's or Trues at each node
-        Create a hashtable/dictionary of sum:[node_numbers]
-        '''
-        # initialize the hash table
-        self.sums = {}
-        for d in range(self.num_dims+1): # 0 and num_dims are both valid
-            self.sums[d] = []
 
-        for idx,node in enumerate(self.data):
-            s = sum(node)
-            self.sums[s].append(idx)
-            _=0
-
-    def get_distance(self,u,v):
+    def cluster(self):
         '''
-        Return the distance between 2 nodes, u and v
-        '''
-        self.distance_iter += 1
-        distance = 0
-        for idx in range(self.num_dims):
-            if self.data[u][idx] != self.data[v][idx]:
-                distance += 1
         
-        return distance
-    #@profile
-    def cluster(self,min_distance):
         '''
 
-        '''
-        self.unionfind = UnionFind(self.num_nodes)
-
-
-        keys = sorted(self.sums.keys())
-        for s in keys:
+        for key in self.data:
             self.keys_iter += 1
-            for s_u in range(len(self.sums[s])):
-                self.s_u_iter += 1
-                for s_v in range(s_u+1,len(self.sums[s])):
-                    self.s_v_iter += 1
-                    
-                    u = self.sums[s][s_u]
-                    v = self.sums[s][s_v]
-                    if self.unionfind.same_parents(u,v):
-                        continue
-                    distance = self.get_distance(u,v)
-                    if distance <= min_distance:
+            if len(self.data[key]) != 1:
+                u = self.data[key][0]
+                for v in range(1,len(self.data[key])):
+                    self.union_iter += 1
+                    self.unionfind.union_if_unique(u,v)
+
+        for key in self.data:
+            self.keys_iter += 1
+            # all verticies at same location are set to be children of the first vertex with that code
+            u = self.data[key][0]
+            for idx in range(self.num_dims):
+                self.list_string_iter += 1
+                u_value_new = list_string(key)
+                if u_value_new[idx] == "0":
+                    u_value_new[idx] = "1"
+                else:
+                    u_value_new[idx] = "0"
+                if u_value_new in self.data:
+                    v = self.data[u_value_new][0]
+                    self.union_iter += 1
+                    self.unionfind.union_if_unique(u,v)
+
+        for key in self.data:
+            self.keys_iter += 1
+            u = self.data[key][0]
+            for idx_1 in range(self.num_dims):
+                self.list_string_iter += 1
+                u_value_new_1 = list_string(key)
+                if u_value_new_1[idx_1] == "0":
+                    u_value_new_1[idx_1] = "1"
+                else:
+                    u_value_new_1[idx_1] = "0"
+
+                for idx_2 in range(idx_1,self.num_dims):
+                    self.list_string_iter += 1
+                    u_value_new_2 = list_string(u_value_new_1)
+                    if u_value_new_2[idx_2] == "0":
+                        u_value_new_2[idx_2] = "1"
+                    else:
+                        u_value_new_2[idx_2] = "0"
+                    if u_value_new_2 in self.data:
+                        v = self.data[u_value_new_2][0]
+                        self.union_iter += 1
                         self.unionfind.union_if_unique(u,v)
-        
-        for s in keys[:-1]:
-            self.keys_iter += 1
-            for s_u in range(0,len(self.sums[s])):
-                self.s_u_iter += 1
-                for s_v in range(0,len(self.sums[s+1])):
-                    self.s_v_iter += 1
-                    u = self.sums[s][s_u]
-                    v = self.sums[s+1][s_v]
-                    if self.get_distance(u,v) <= min_distance:
-                        self.unionfind.union_if_unique(u,v)                
-
-        for s in keys[:-2]:
-            self.keys_iter += 1
-            for s_u in range(0,len(self.sums[s])):
-                self.s_u_iter += 1
-                for s_v in range(0,len(self.sums[s+2])):
-                    self.s_v_iter += 1
-                    u = self.sums[s][s_u]
-                    v = self.sums[s+2][s_v]
-                    if self.get_distance(u,v) <= min_distance:
-                        self.unionfind.union_if_unique(u,v)
-
+            
         return self.unionfind.num_groups
 
-
-
-    #@profile
-    def cluster2(self,min_distance):
-        '''
-        Create clusters of nodes with a minimum distance between 2 nodes in seperate clusters
-        '''
-
-        # create a heap for the distances
-        # first estimate max possible heap size
-        # this computes n choose r for each set of differences
-        heap_size = 1
-        for ii in range(min_distance+1):
-            heap_size += ncr(self.num_dims,ii)
-        heap_size *= self.num_nodes
-        
-        self.heap = Heap(heap_size)
-
-        # need a way to link the id that is passed to the heap to the pair of matches
-        self.heap_to_matches = [] # list of lists that contain the u,v node ids
-        match_id = 0
-
-        for sum_start in self.sums:
-            if self.sums[sum_start] == []: # skip empty counts
-                continue
-            for sum_end in range(sum_start,min(self.num_dims,sum_start+min_distance+1)):
-                if self.sums[sum_end] == []: # skip empty counts
-                    continue
-                # now have the starting nodes with same sum and end nodes within min_distance of the starting node
-                for u in self.sums[sum_start]:
-                    for v in self.sums[sum_end]:
-                        if u == v: # skip itself
-                            continue
-                        #idx = -1
-                        #distance = 0
-                        #while idx < self.num_dims:
-                        #    idx += 1
-                        #    if self.data[u] == self.data[v]:
-                        #        distance += 1
-                        #    if distance > min_distance:
-                        #        break
-
-                        # this method works but is expensive!
-                        distance = sum([abs(x-y) for x,y in zip(self.data[u],self.data[v]) ])
-                        if distance <= min_distance:
-                            self.heap.insert(match_id,distance)
-                            self.heap_to_matches.append([u,v])
-                            match_id += 1
-
-        # create the union find data structure
-        self.unionfind = UnionFind(self.num_nodes)
-
-        id,distance = self.heap.extract_min()
-        while len(self.heap) > 0:
-            ##if len(self.heap)%100==0:
-            #    print("\tOn {}/{}\r".format(match_id-len(self.heap),len(self.heap)),end="")
-            self.unionfind.union_if_unique(self.heap_to_matches[id][0],self.heap_to_matches[id][1])
-            id,distance = self.heap.extract_min()
-        #print()
-
-        # must account for when the last 2 values are in the same cluster
-        if self.unionfind.same_parents(self.heap_to_matches[id][0],self.heap_to_matches[id][1]):
-            self.unionfind.num_groups += 1
-        self.unionfind.num_groups -= 1
-        return self.unionfind.num_groups
             
 base_path = "course3/test_assignment2/question2"
 #fname = "input_random_5_4_4.txt"
 fname = "input_random_4_4_6.txt"
 hc = HammingCluster(os.path.join(base_path,fname),testing=True)
-hc.sum_dims_at_nodes()
-num_groups = hc.cluster(min_distance=2)
+
+num_groups = hc.cluster()
 print("expected {:4} Got {:4} error {:4}".format(hc.correct_solution,num_groups,hc.correct_solution-num_groups))
 
 
 
 with open("output.csv",'w') as f:
-    f.write("n,dims,keys,s_u,s_v,dist\n")
+    f.write("n,dims,keys,union,list_string\n")
 
 for fname in os.listdir(base_path):
     if "input" not in fname:
@@ -235,26 +174,28 @@ for fname in os.listdir(base_path):
     
     if int(fname[count_start:count_end]) > 1024:
         continue
-    print(fname)
+    print("{}".format(fname),end="")
     start_time = time.time()
     hc = HammingCluster(os.path.join(base_path,fname),testing=True)
-    hc.sum_dims_at_nodes()
-    num_groups = hc.cluster(min_distance=2)
-    print("\tExpected {:4} Got {:4} error {:4}".format(hc.correct_solution,num_groups,hc.correct_solution-num_groups))
-    print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
-    print("\tn: {} keys: {} s_u: {} s_v:{} dist: {}\n".format(hc.num_nodes,hc.keys_iter,hc.s_u_iter,hc.s_v_iter,hc.distance_iter))
-    with open("output.csv",'a') as f:
-        f.write("{},{},{},{},{},{}\n".format(hc.num_nodes,hc.num_dims,hc.keys_iter,hc.s_u_iter,hc.s_v_iter,hc.distance_iter))
-'''
-#
-#base_path = "course3/"
-#fname = "assignment2_q2.txt"
-#print("Starting assignment")
-#start_time = time.time()
-#hc = HammingCluster(os.path.join(base_path,fname),testing=False)
-#hc.sum_dims_at_nodes()
-#num_groups = hc.cluster(min_distance=2)
-#print("\tGot {:4}".format(num_groups))
-#print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
+    num_groups = hc.cluster()
+    if hc.correct_solution != num_groups:
+        print("\n\tExpected {:4} Got {:4} error {:4}".format(hc.correct_solution,num_groups,hc.correct_solution-num_groups))
+        print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
+        print("\tn: {} keys: {} union: {} list_string:{}\n".format(hc.num_nodes,hc.keys_iter,hc.union_iter,hc.list_string_iter))
+    else:
+        print("  Correct!")
 
-'''
+    with open("output.csv",'a') as f:
+        f.write("{},{},{},{},{}\n".format(hc.num_nodes,hc.num_dims,hc.keys_iter,hc.union_iter,hc.list_string_iter))
+
+
+base_path = "course3/"
+fname = "assignment2_q2.txt"
+print("Starting assignment")
+start_time = time.time()
+hc = HammingCluster(os.path.join(base_path,fname),testing=False)
+num_groups = hc.cluster()
+print("\tGot {:4}".format(num_groups))
+print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
+
+
