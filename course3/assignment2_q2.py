@@ -29,6 +29,8 @@ sys.path.append("/home/neil/Algorithms_specialization")
 from helpers.Heap import Heap
 from helpers.UnionFind import UnionFind
 
+import time
+
 
 # useful tool to compute n choose r which will be used to allocate an array
 #https://stackoverflow.com/questions/4941753/is-there-a-math-ncr-function-in-python
@@ -47,6 +49,11 @@ class HammingCluster():
         '''
         self.fname = fname
         self.testing = testing
+
+        self.keys_iter = 0
+        self.s_u_iter = 0
+        self.s_v_iter = 0
+        self.distance_iter = 0
 
         with open(fname,'r') as f:
             data = f.readlines()
@@ -80,8 +87,71 @@ class HammingCluster():
         for idx,node in enumerate(self.data):
             s = sum(node)
             self.sums[s].append(idx)
-    @profile
+            _=0
+
+    def get_distance(self,u,v):
+        '''
+        Return the distance between 2 nodes, u and v
+        '''
+        self.distance_iter += 1
+        distance = 0
+        for idx in range(self.num_dims):
+            if self.data[u][idx] != self.data[v][idx]:
+                distance += 1
+        
+        return distance
+    #@profile
     def cluster(self,min_distance):
+        '''
+
+        '''
+        self.unionfind = UnionFind(self.num_nodes)
+
+
+        keys = sorted(self.sums.keys())
+        for s in keys:
+            self.keys_iter += 1
+            for s_u in range(len(self.sums[s])):
+                self.s_u_iter += 1
+                for s_v in range(s_u+1,len(self.sums[s])):
+                    self.s_v_iter += 1
+                    
+                    u = self.sums[s][s_u]
+                    v = self.sums[s][s_v]
+                    if self.unionfind.same_parents(u,v):
+                        continue
+                    distance = self.get_distance(u,v)
+                    if distance <= min_distance:
+                        self.unionfind.union_if_unique(u,v)
+        
+        for s in keys[:-1]:
+            self.keys_iter += 1
+            for s_u in range(0,len(self.sums[s])):
+                self.s_u_iter += 1
+                for s_v in range(0,len(self.sums[s+1])):
+                    self.s_v_iter += 1
+                    u = self.sums[s][s_u]
+                    v = self.sums[s+1][s_v]
+                    if self.get_distance(u,v) <= min_distance:
+                        self.unionfind.union_if_unique(u,v)                
+
+        for s in keys[:-2]:
+            self.keys_iter += 1
+            for s_u in range(0,len(self.sums[s])):
+                self.s_u_iter += 1
+                for s_v in range(0,len(self.sums[s+2])):
+                    self.s_v_iter += 1
+                    u = self.sums[s][s_u]
+                    v = self.sums[s+2][s_v]
+                    if self.get_distance(u,v) <= min_distance:
+                        self.unionfind.union_if_unique(u,v)
+
+        return self.unionfind.num_groups
+
+
+
+    #@profile
+    def cluster2(self,min_distance):
         '''
         Create clusters of nodes with a minimum distance between 2 nodes in seperate clusters
         '''
@@ -103,7 +173,7 @@ class HammingCluster():
         for sum_start in self.sums:
             if self.sums[sum_start] == []: # skip empty counts
                 continue
-            for sum_end in range(sum_start,min(self.num_dims+1,sum_start+min_distance+1)):
+            for sum_end in range(sum_start,min(self.num_dims,sum_start+min_distance+1)):
                 if self.sums[sum_end] == []: # skip empty counts
                     continue
                 # now have the starting nodes with same sum and end nodes within min_distance of the starting node
@@ -111,15 +181,17 @@ class HammingCluster():
                     for v in self.sums[sum_end]:
                         if u == v: # skip itself
                             continue
+                        #idx = -1
+                        #distance = 0
+                        #while idx < self.num_dims:
+                        #    idx += 1
+                        #    if self.data[u] == self.data[v]:
+                        #        distance += 1
+                        #    if distance > min_distance:
+                        #        break
 
-                        #distance1 = 0
-                        #for idx in range(self.num_dims):
-                        #    if self.data[u][idx] == self.data[v][idx]:
-                        #        distance1 += 1
                         # this method works but is expensive!
                         distance = sum([abs(x-y) for x,y in zip(self.data[u],self.data[v]) ])
-                        assert distance == distance
-                        
                         if distance <= min_distance:
                             self.heap.insert(match_id,distance)
                             self.heap_to_matches.append([u,v])
@@ -143,13 +215,17 @@ class HammingCluster():
         return self.unionfind.num_groups
             
 base_path = "course3/test_assignment2/question2"
-#fname = "input_random_1_4_14.txt"
-fname = "input_random_52_1024_24.txt"
+#fname = "input_random_5_4_4.txt"
+fname = "input_random_4_4_6.txt"
 hc = HammingCluster(os.path.join(base_path,fname),testing=True)
 hc.sum_dims_at_nodes()
 num_groups = hc.cluster(min_distance=2)
 print("expected {:4} Got {:4} error {:4}".format(hc.correct_solution,num_groups,hc.correct_solution-num_groups))
 
+
+
+with open("output.csv",'w') as f:
+    f.write("n,dims,keys,s_u,s_v,dist\n")
 
 for fname in os.listdir(base_path):
     if "input" not in fname:
@@ -157,10 +233,28 @@ for fname in os.listdir(base_path):
     count_end = fname.rfind("_")
     count_start = fname[:count_end].rfind("_")+1
     
-    if int(fname[count_start:count_end]) > 1500:
+    if int(fname[count_start:count_end]) > 1024:
         continue
     print(fname)
+    start_time = time.time()
     hc = HammingCluster(os.path.join(base_path,fname),testing=True)
     hc.sum_dims_at_nodes()
     num_groups = hc.cluster(min_distance=2)
     print("\tExpected {:4} Got {:4} error {:4}".format(hc.correct_solution,num_groups,hc.correct_solution-num_groups))
+    print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
+    print("\tn: {} keys: {} s_u: {} s_v:{} dist: {}\n".format(hc.num_nodes,hc.keys_iter,hc.s_u_iter,hc.s_v_iter,hc.distance_iter))
+    with open("output.csv",'a') as f:
+        f.write("{},{},{},{},{},{}\n".format(hc.num_nodes,hc.num_dims,hc.keys_iter,hc.s_u_iter,hc.s_v_iter,hc.distance_iter))
+'''
+#
+#base_path = "course3/"
+#fname = "assignment2_q2.txt"
+#print("Starting assignment")
+#start_time = time.time()
+#hc = HammingCluster(os.path.join(base_path,fname),testing=False)
+#hc.sum_dims_at_nodes()
+#num_groups = hc.cluster(min_distance=2)
+#print("\tGot {:4}".format(num_groups))
+#print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
+
+'''
