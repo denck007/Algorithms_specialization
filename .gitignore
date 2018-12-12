@@ -1,2 +1,4 @@
 *.lprof
 *.pyc
+
+*/.ipynb_checkpoints/*
