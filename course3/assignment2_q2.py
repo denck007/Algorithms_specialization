@@ -9,17 +9,16 @@ We are tasked with finding the number of clusters needed so that the spacing bet
 
 The dataset is large and it is advised to no try and measure the distance between all the points.
 
+This solution is still not optimal, but it is still pretty quick. Optimial is <20 seconds, this is 450seconds.
+Most of the time (~70%) is spent creating a string to hash, and an additional 10% is spent creating an extended list object
+Converting the extended list object to a bit object and bit fiddling would likely get us sub 40 seconds.
 
-My idea to start is to do some simple filtering based on the known data:
-- We want to know the number of clusters
-- The minimum spacing between clusters is >=3
+This solution creates a hash table of the 'locations' of each point as key
+It then goes through and merges all verticies that have the same location
+Then it goes through and inverts one bit at a time, and sees if that location is in the hash table
+    If it is then the nodes are merged
+Then it goes through and inverts 2 bits and if it sees 
 
-So if we sum the number of 1's at each node, then only compute the distance between the items
-    that have a potential of being close by. To do this we make a hash table, where the keys are 
-    the sum of 1's, and point to a list of nodes. We then perform the comparision of the 2 values.
-
-The exhaustive search of every combination is 20,000,000,000 symmetric comparisions. 
-Doing this filtering step will bring us down to 200,000*(24+(24choose2))=30,000,000 symmetric comparisions or 667x less work
 
 '''
 
@@ -31,17 +30,6 @@ from helpers.UnionFind import UnionFind
 
 import time
 
-
-# useful tool to compute n choose r which will be used to allocate an array
-#https://stackoverflow.com/questions/4941753/is-there-a-math-ncr-function-in-python
-import operator as op
-from functools import reduce
-def ncr(n, r):
-    r = min(r, n-r)
-    numer = reduce(op.mul, range(n, n-r, -1), 1)
-    denom = reduce(op.mul, range(1, r+1), 1)
-    return numer//denom
-
 class list_string(list):
     '''
     extend the list class with the ability to turn it into a string
@@ -51,7 +39,7 @@ class list_string(list):
     def __init__(self,*args):
         list.__init__(self,*args)
         self.string = None # allows caching of the result
-    @profile
+    #@profile
     def stringify(self):
         if self.string is None:
             self.string = ""
@@ -104,29 +92,13 @@ class HammingCluster():
         '''
         
         '''
-
+        # look for verticies that are at the same location
         for key in self.data:
             self.keys_iter += 1
             if len(self.data[key]) != 1:
                 u = self.data[key][0]
                 for s_v in range(1,len(self.data[key])):
                     v= self.data[key][s_v]
-                    self.union_iter += 1
-                    self.unionfind.union_if_unique(u,v)
-
-        for key in self.data:
-            self.keys_iter += 1
-            # all verticies at same location are set to be children of the first vertex with that code
-            u = self.data[key][0]
-            for idx in range(self.num_dims):
-                self.list_string_iter += 1
-                u_value_new = list_string(key)
-                if u_value_new[idx] == "0":
-                    u_value_new[idx] = "1"
-                else:
-                    u_value_new[idx] = "0"
-                if u_value_new in self.data:
-                    v = self.data[u_value_new][0]
                     self.union_iter += 1
                     self.unionfind.union_if_unique(u,v)
 
@@ -141,6 +113,12 @@ class HammingCluster():
                 else:
                     u_value_new_1[idx_1] = "0"
 
+                # check and see if the single bit change exists
+                if u_value_new_1 in self.data:
+                    v = self.data[u_value_new_1][0]
+                    self.union_iter += 1
+                    self.unionfind.union_if_unique(u,v)
+
                 for idx_2 in range(idx_1+1,self.num_dims):
                     self.list_string_iter += 1
                     u_value_new_2 = list_string(u_value_new_1)
@@ -149,6 +127,8 @@ class HammingCluster():
                         u_value_new_2[idx_2] = "1"
                     else:
                         u_value_new_2[idx_2] = "0"
+                    
+                    # see if the 2 bit change is in the data
                     _ = u_value_new_2.stringify()
                     if u_value_new_2 in self.data:
                         v = self.data[u_value_new_2][0]
@@ -177,7 +157,7 @@ for fname in os.listdir(base_path):
     count_end = fname.rfind("_")
     count_start = fname[:count_end].rfind("_")+1
     
-    if int(fname[count_start:count_end]) > 32:
+    if int(fname[count_start:count_end]) > 1024:
         continue
     print("{}".format(fname),end="")
     start_time = time.time()
@@ -192,8 +172,8 @@ for fname in os.listdir(base_path):
 
     with open("output.csv",'a') as f:
         f.write("{},{},{},{},{}\n".format(hc.num_nodes,hc.num_dims,hc.keys_iter,hc.union_iter,hc.list_string_iter))
-
 '''
+
 base_path = "course3/"
 fname = "assignment2_q2.txt"
 print("Starting assignment")
@@ -202,5 +182,5 @@ hc = HammingCluster(os.path.join(base_path,fname),testing=False)
 num_groups = hc.cluster()
 print("\tGot {:4}".format(num_groups))
 print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
-'''
 
+'''
