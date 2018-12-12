@@ -17,9 +17,9 @@ This solution creates a hash table of the 'locations' of each point as key
 It then goes through and merges all verticies that have the same location
 Then it goes through and inverts one bit at a time, and sees if that location is in the hash table
     If it is then the nodes are merged
-Then it goes through and inverts 2 bits and if it sees 
+    Then it goes through and inverts all of the other bits one by one, and sees if that value is in the hash table
 
-
+This method could be cleaned up and have recursion added to make it more generic
 '''
 
 import os
@@ -80,14 +80,12 @@ class HammingCluster():
                 self.data[vals] = [node]
             else:
                 self.data[vals].append(node)
-                #print("\tNot unique location found : {}".format(vals.stringify()))
 
         if testing:
             fname = fname.replace("input","output")
             with open(fname,'r') as f:
                 self.correct_solution = int(f.read())
 
-    @profile
     def cluster(self):
         '''
         
@@ -139,15 +137,6 @@ class HammingCluster():
 
             
 base_path = "course3/test_assignment2/question2"
-#fname = "input_random_5_4_4.txt"
-fname = "input_random_4_4_6.txt"
-hc = HammingCluster(os.path.join(base_path,fname),testing=True)
-
-num_groups = hc.cluster()
-print("expected {:4} Got {:4} error {:4}".format(hc.correct_solution,num_groups,hc.correct_solution-num_groups))
-
-
-
 with open("output.csv",'w') as f:
     f.write("n,dims,keys,union,list_string\n")
 
@@ -157,8 +146,8 @@ for fname in os.listdir(base_path):
     count_end = fname.rfind("_")
     count_start = fname[:count_end].rfind("_")+1
     
-    if int(fname[count_start:count_end]) > 1024:
-        continue
+    #if int(fname[count_start:count_end]) > 1024:
+    #    continue
     print("{}".format(fname),end="")
     start_time = time.time()
     hc = HammingCluster(os.path.join(base_path,fname),testing=True)
@@ -172,7 +161,7 @@ for fname in os.listdir(base_path):
 
     with open("output.csv",'a') as f:
         f.write("{},{},{},{},{}\n".format(hc.num_nodes,hc.num_dims,hc.keys_iter,hc.union_iter,hc.list_string_iter))
-'''
+
 
 base_path = "course3/"
 fname = "assignment2_q2.txt"
@@ -182,5 +171,3 @@ hc = HammingCluster(os.path.join(base_path,fname),testing=False)
 num_groups = hc.cluster()
 print("\tGot {:4}".format(num_groups))
 print("\tElapsed time: {:.1f}sec".format(time.time()-start_time))
-
-'''
