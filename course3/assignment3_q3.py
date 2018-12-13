@@ -43,25 +43,81 @@ class MaxWeightIndependentSet():
 
             self.solution = data[0].strip()
 
+    def generate_wis_costs(self):
+        '''
+        Go through the path graph and generate the weight independent set
+        '''
+
+        self.costs = [0 for x in range(self.num_vertex+1)]
+
+        # initialize the base cases
+        self.costs[0] = 0
+        self.costs[1] = self.weights[1]
+
+        for ii in range(2,self.num_vertex+1):
+            self.costs[ii] = max(self.costs[ii-1],self.costs[ii-2]+self.weights[ii])
+
+        a = 0
+    def get_wis_set(self):
+        '''
+        get the indicies in the maximum weight independent set 
+        '''
+
+        self.set = [False for _ in range(self.num_vertex+1)]
+        ii = self.num_vertex
+        while ii > 0:
+            if self.costs[ii-1] >= (self.costs[ii-2] + self.weights[ii]):
+                ii -= 1
+            else:
+                self.set[ii] = True
+                ii -= 2
+
+        a = 0
+
+    def get_result(self):
+        '''
+        Get the string that signifies the solution to the homework assignment
+        '''
+
+        answer = ""
+
+        for idx in self.to_find:
+            if idx > self.num_vertex:
+                answer += "0"
+            elif self.set[idx]:
+                answer += "1"
+            else:
+                answer += "0"
+        return answer
+
 
 base_path = "course3/test_assignment3/question3"
 fname = "input_random_1_10.txt"
 
 wis = MaxWeightIndependentSet(os.path.join(base_path,fname),testing=True)
-print(wis.weights)
-print(wis.solution)
+wis.generate_wis_costs()
+wis.get_wis_set()
+solution = wis.get_result()
+print("Got {} expected {}".format(solution,wis.solution))
 
-'''
 for fname in os.listdir(base_path):
     if "input" not in fname:
         continue
     print(fname,end="")
-    if (min_len == huffman.solution_2) and (max_len == huffman.solution_1):
-        print(" Correct! Min: {} Max: {}".format(min_len,max_len))
+    wis = MaxWeightIndependentSet(os.path.join(base_path,fname),testing=True)
+    wis.generate_wis_costs()
+    wis.get_wis_set()
+    solution = wis.get_result()
+    if wis.solution == solution:
+        print(" Correct! Got {}".format(solution))
     else:
-        print("\n\tMin Got {} expected {}\n\tMax got {} expected {}".format(min_len,huffman.solution_2,max_len,huffman.solution_1))
+        print("\n\tGot {} expected {}".format(solution,wis.solution))
 
-'''
-
-
-
+base_path = "course3/"
+fname = "assignment3_q3_input.txt"
+print("Starting assignment...")
+wis = MaxWeightIndependentSet(os.path.join(base_path,fname),testing=False)
+wis.generate_wis_costs()
+wis.get_wis_set()
+solution = wis.get_result()
+print("Got {}".format(solution))
