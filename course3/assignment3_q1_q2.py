@@ -120,3 +120,12 @@ for fname in os.listdir(base_path):
         print(" Correct! Min: {} Max: {}".format(min_len,max_len))
     else:
         print("\n\tMin Got {} expected {}\n\tMax got {} expected {}".format(min_len,huffman.solution_2,max_len,huffman.solution_1))
+
+
+base_path = "course3/"
+fname = "assignment3_q1_q2_input.txt"
+print("Starting assignment")
+huffman = Huffman(os.path.join(base_path,fname),testing=False)
+huffman.generate_code()
+min_len,max_len = huffman.get_codeword_lengths_range()
+print("Answers:\n\tMax codeword length: {}\n\tMin codeword length: {}".format(max_len,min_len))
