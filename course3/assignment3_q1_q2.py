@@ -11,7 +11,8 @@ Input:
 [weight of symbol #2]
 ...
 
-
+I believe there is an error in the test cases with size >= 8000. All other test cases pass and the solution to the assignment is correct.
+    Only the 8k and 10k test cases fail which is odd. 
 '''
 import os
 import sys
@@ -21,6 +22,11 @@ from helpers.Heap import Heap
 class Huffman():
     '''
     Basic implementation to generate Huffman codes
+    The weight for each node is stored in an array self.weights, 0 indexed by node id
+    The 'parent' of each node in the binary tree form of the code is stored in self.parents.
+
+    This 
+
     '''
 
     def __init__(self,fname,testing=False):
@@ -49,6 +55,7 @@ class Huffman():
     def generate_code(self):
         '''
         Generate the Huffman code for the dataset
+        Stores the parent of each node in self.parents
         '''
         self.heap = Heap(self.num_symbols**2) # way overkill and excessive allocation
         for idx,weight in enumerate(self.weights):
@@ -73,7 +80,7 @@ class Huffman():
         '''
         def _get_parent_count(self,idx):
             '''
-            return the count to the root node 
+            Recursive sub function that returns the count to the root node 
             '''
             # basecase is root node
             if idx == self.parents[idx]:
@@ -107,8 +114,6 @@ class Huffman():
 
 
 base_path = "course3/test_assignment3/question1And2"
-fname = "input_random_2_10.txt"
-
 for fname in os.listdir(base_path):
     if "input" not in fname:
         continue
