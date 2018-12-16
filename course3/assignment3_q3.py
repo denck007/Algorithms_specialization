@@ -57,7 +57,6 @@ class MaxWeightIndependentSet():
         for ii in range(2,self.num_vertex+1):
             self.costs[ii] = max(self.costs[ii-1],self.costs[ii-2]+self.weights[ii])
 
-        a = 0
     def get_wis_set(self):
         '''
         get the indicies in the maximum weight independent set 
@@ -71,8 +70,6 @@ class MaxWeightIndependentSet():
             else:
                 self.set[ii] = True
                 ii -= 2
-
-        a = 0
 
     def get_result(self):
         '''

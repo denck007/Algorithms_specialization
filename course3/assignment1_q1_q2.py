@@ -67,7 +67,7 @@ def get_sum_weighted_times(h,weights,lengths,elapsed_time=0):
     while (len(h) > 0):
         job,cost = h.extract_min()
 
-        next_job,next_cost = h.view_min()
+        _,next_cost = h.view_min()
         if cost == next_cost:
             # the current cost matches the next cost
             # when costs match, choose by highest weight
@@ -80,7 +80,7 @@ def get_sum_weighted_times(h,weights,lengths,elapsed_time=0):
             while cost == next_cost:
                 job,cost= h.extract_min()
                 matching_heap.insert(job,-weights[job])
-                next_job,next_cost = h.view_min()
+                _,next_cost = h.view_min()
                 #print("\tjob:{:3} cost: {:4} weight: {:3} length: {:3} elapsed_time:{:5} weighted_times:{:8}".format(job,cost,weights[job],lengths[job],elapsed_time,weighted_times))
             
             while (len(matching_heap) > 0):
