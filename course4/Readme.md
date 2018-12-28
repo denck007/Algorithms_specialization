@@ -9,4 +9,8 @@ Johnson's is interesting because it takes the generic case and converts it to th
 
 The result is that the 1 iteration of Bellman-Ford takes longer than running Dijkstra's on all of the verticies combined! This is absolutely nuts! Running time for the assignment ended up being ~150 seconds total for all 3 assignments. The 2048 node test cases take around 150 seconds each to run. 
 
+I did a comparision between Floyd-Warshall, Bellman-Ford, and Johnson using the test cases with 128 and less verticies. The compute time for each was: Floyd-Warshall 7.9s, Bellman-Ford 15.0s, Johnson 0.5s. Running a profiler on the code shows that in Johnson's on the test cases the 1 iteration of Bellman-Ford takes 50%+ of the solve time and running all iterations of Dijkstra's takes ~43%. 
+
 What is really cool about this algorithm is how it shows to never be satisfied by the obvious and that it might be possible to turn generic cases into special cases which run faster.
+
+

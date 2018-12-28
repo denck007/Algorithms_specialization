@@ -218,6 +218,7 @@ class Graph():
         Returns the distances from s to all other verticies
         If a vertex is not connected, then the distance to that vertex is self.longest_path
         '''
+        #@profile
         def add_to_heap(h,tail,explored,added_to_heap_by):
             '''
             Add all the verticies connected to tail vertex by and edge to the heap
@@ -343,7 +344,7 @@ for fname in os.listdir(base_path):
     if "input" not in fname:
         continue
     n = fname[fname.rfind("_")+1:-4]
-    if int(n) > 100:
+    if int(n) > 130:
         continue
     print("{:25s} ".format(fname),end="")
     graph = Graph(os.path.join(base_path,fname),testing=True)
@@ -373,9 +374,6 @@ for fname in os.listdir(base_path):
         print("Floyd Warshall: {}".format(shortest_path_fw))
         print("Bellman Ford  : {}".format(shortest_path_bf))
         print("Johnson       : {}".format(shortest_path_johnson))
-        
-
-
 print("\nTiming Results:")
 print("Floyd-Warshall: {:5.3f}s   Bellmand-Ford: {:5.3f}s   Johnson: {:5.3f}s".format(fw_time,bf_time,johnson_time))
 
@@ -385,7 +383,7 @@ for fname in os.listdir(base_path):
     if "input" not in fname:
         continue
     n = fname[fname.rfind("_")+1:-4]
-    #if int(n) > 1000:
+    #if int(n) > 130:
     #    continue
     print("{:25s} ".format(fname),end="")
     graph = Graph(os.path.join(base_path,fname),testing=True)
