@@ -41,16 +41,32 @@ class Graph():
         self.edge_length = []
 
         self.longest_path = 0 # the sum of absolute value of every length in the graph, used as infinity
+        self.has_negative_edge = False # flag for if the graph contains a negative edge or not
+        self.has_negative_cycle = None
+
+        # initialize apsp distances to empty lists
+        self.apsp_bellmanford = []
+        self.apsp_fw = []
+        self.apsp_johnson = []
+
+        # initialize the shortest path between any 2 points in a graph to None        
+        self.apsp_fw_shortest = None
+        self.apsp_bellmanford_shortest = None
+        self.apsp_johnson_shortest = None
 
         for e,line in enumerate(data[1:]):
             u,v,length = line.strip().split()
             u = int(u)
             v = int(v)
             length = int(length)
+
             self.longest_path += abs(length)
             self.edge_verticies.append([u,v])
             self.edge_length.append(length)
             self.vertex_edges[v].append(e)
+                        
+            if length < 0:
+                self.has_negative_edge = True
 
         if testing:
             fname = fname.replace("input","output")
@@ -120,14 +136,13 @@ class Graph():
                     self.apsp_fw[i][j][k] = min(case1,case2)
                     self.apsp_length = min(self.apsp_length,self.apsp_fw[i][j][k])
 
-        self.found_negative_loop = False
         self.vertices_in_negative_loop = []
         for i in range(self.num_verticies+1):
             if self.apsp_fw[i][i][-1] < 0:
-                self.found_negative_loop = True
+                self.has_negative_cycle = True
                 self.vertices_in_negative_loop.append(i)
 
-        if self.found_negative_loop:
+        if self.has_negative_cycle:
             return "NULL"
         else:
             return self.apsp_length
@@ -136,46 +151,97 @@ class Graph():
         '''
         Runs the Bellman-Ford shortest path algorithm for 1 source vertex, s, to every other vertex in graph
         return the shortest paths from s to each of the other verticies in the graph
+        If there is a negative cycle, return NULL
         '''
         #Initialize with postitive infinity
-        self.shortest_path = [[self.longest_path for v in range(self.num_verticies+1)] for i in range(self.num_verticies)]
-        self.shortest_path[0][s] = 0
+        shortest_path = [[self.longest_path for v in range(self.num_verticies+1)] for i in range(self.num_verticies+2)]
+        shortest_path[0][s] = 0
 
-        for i in range(1,self.num_verticies): # only goes to n-1 because of 1 based indexing on verticies
-            for v in range(1,self.num_verticies+1): 
-                case1 = self.shortest_path[i-1][v]
+        for i in range(1,len(shortest_path)): # only need to go to n-1 because of 1 based indexing on verticies, but do extra for negative cycle check
+            for v in range(1,self.num_verticies+1):
+                case1 = shortest_path[i-1][v]
                 case2 = case1
                 for edge in self.vertex_edges[v]:
                     w = self.edge_verticies[edge][0] # get the start vertex of edge into v
                     c_wv = self.edge_length[edge] # get length of w to v
-                    to_w = self.shortest_path[i-1][w] # get length from s to w
+                    to_w = shortest_path[i-1][w] # get length from s to w
                     case2 = min(case2,to_w+c_wv) # shortest path from s to v in case 2
-                self.shortest_path[i][v] = min(case1,case2)
-        self.shortest_path = self.shortest_path[-1] # remove all the work, keep only the solution
+                    _ = 0
+                shortest_path[i][v] = min(case1,case2)
 
-        return self.shortest_path
+        # check for negative cycle
+        # is negative cycle if there is a difference between the last 2 iterations
+        self.has_negative_cycle = False
+        for s in range(self.num_verticies):
+            if shortest_path[-1][s] != shortest_path[-2][s]:
+                self.has_negative_cycle = True
+                return "NULL"
+
+        return shortest_path[-1] # return the final iteration
+
+    def BellmanFord_apsp(self):
+        '''
+        Run the Bellman-Ford algorithm for all pairs shortest path on the graph
+        Sets the self.apsp_bellmanford array of arrays (distance from s to t)
+            Sets to None if there is a negative cycle
+        '''
+
+        self.apsp_bellmanford = [] # ends up being nxn array
+        shortest_path = self.longest_path
+
+        for s in range(self.num_verticies+1):
+            shortest_st = self.BellmanFord(s)
+            if shortest_st is "NULL":
+                self.apsp_bellmanford = "NULL"
+                self.apsp_bellmanford_shortest = "NULL"
+                return "NULL"
+            else:
+                self.apsp_bellmanford.append(shortest_st)
+                for distance in shortest_st:
+                    shortest_path = min(shortest_path,distance)
+
+        self.apsp_bellmanford_shortest = shortest_path
+        return self.apsp_bellmanford
 
     def Johnson_apsp(self):
         '''
         run Johnson's all pairs shortest path alogrithm on the graph
         This requires making a sub instance of the Graph object with an additional vertex
+
+        If there is a negative cycle return NULL
         '''
-        extended_graph = Graph(self.fname,testing=False)
-        extended_graph.add_vertex()
-        for v in range(1,self.num_verticies):
-            extended_graph.add_edge(self.num_verticies,v,0)
-        vertex_weights = extended_graph.BellmanFord(s=0)
+
+        # if we have a negative edge length then need to update the edge lengths using bellman ford
+        if self.has_negative_edge:
+            # add vertex with edge to every node
+            extended_graph = Graph(self.fname,testing=False)
+            extended_graph.add_vertex()
+            for v in range(self.num_verticies):
+                extended_graph.add_edge(self.num_verticies,v,0) # from s to every other vertex
+            
+            # run bellman ford, the shortest path from s to each vertex is the additive
+            #   weight for the corresponding node
+            vertex_weights = extended_graph.BellmanFord(extended_graph.num_verticies)
+            if vertex_weights is "NULL":
+                self.apsp_johnson = "NULL"
+                return "NULL"
+
+            # update the edge lengths with the vertex_weights
+            for edge in range(self.num_edges):
+                u,v = self.edge_verticies[edge]
+                self.edge_length[edge] = self.edge_length[edge] + vertex_weights[u] - vertex_weights[v]
+
+        # To find All Pairs Shortest Path run Dijkstra's single source shortest path
+        #   from every starting node. 
+        # If we have gotten this far it is gaurenteed that there is not a negative cycle
         
+        #initialize the storage for APSP distances using the sum(abs(edge_length)),every path is gaurentted to be shorter
+        #self.apsp_johnson = [[self.longest_path for t in range(self.num_verticies+1)] for s in range(self.num_verticies+1)]
+        self.apsp_johnson = []
+
+
+
         
-
-        
-
-        
-
-
-
-
-
 
     def APSP(self,algorithm):
         '''
@@ -188,6 +254,12 @@ class Graph():
         elif algorithm.lower() == "johnson":
             self.Johnson_apsp()
 
+
+import time
+
+fw_time  = 0.
+bf_time = 0.
+
 base_path = "course4/test_assignment1"
 fname = "input_random_2_2.txt"
 
@@ -195,16 +267,33 @@ for fname in os.listdir(base_path):
     if "input" not in fname:
         continue
     n = fname[fname.rfind("_")+1:-4]
-    if int(n) > 10:
+    if int(n) > 100:
         continue
-    print("{:25s} ".format(fname),end="")
+    print("{:25s} ".format(fname))
     graph = Graph(os.path.join(base_path,fname),testing=True)
+    
+    # Floyd Warshall
+    start_time = time.time()
     shortest_path = graph.FloydWarshall_apsp()
+    fw_time += time.time()-start_time
+    print("\tFloyd-Warshall: ",end="")
     if shortest_path == graph.solution:
         print("Correct! Got {}".format(shortest_path))
     else:
-        print("WRONG! Got {} expected {}".format(shortest_path,apsp.solution))
+        print("WRONG! Got {} expected {}".format(shortest_path,graph.solution))
 
+    # Bellman-Ford
+    start_time = time.time()
+    graph.BellmanFord_apsp()
+    bf_time += time.time()-start_time   
+    shortest_path = graph.apsp_bellmanford_shortest
+    print("\tBellman-Ford  : ",end="")
+    if shortest_path == graph.solution:
+        print("Correct! Got {}".format(shortest_path))
+    else:
+        print("WRONG! Got {} expected {}".format(shortest_path,graph.solution))
+print("\nTiming Results:")
+print("Floyd-Warshall: {:5.3f}   Bellmand-Ford: {:5.3f}".format(fw_time,bf_time))
 '''
 print("Starting Assignment!")
 base_path = "course4/"
