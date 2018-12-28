@@ -20,9 +20,12 @@ The solution will need to have mechanism for checking for negative cycles
 '''
 
 import os
+import sys
+import time
 
+sys.path.append("/home/neil/Algorithms_specialization")
+from helpers.Heap import Heap
 class Graph():
-
     def __init__(self,fname,testing=False):
         '''
         Read in a graph from fname and read in the solution if we are testing
@@ -37,7 +40,8 @@ class Graph():
         self.num_edges = int(data[0].split()[1])
         
         self.edge_verticies = [] # the [tail,head] of the edge
-        self.vertex_edges = [[] for _ in range(self.num_verticies+1)] # all of the edges that go into a vertex
+        self.vertex_edges_head = [[] for _ in range(self.num_verticies+1)] # all of the edges that go into a vertex
+        self.vertex_edges_tail = [[] for _ in range(self.num_verticies+1)] # all of the edges that leave a vertex
         self.edge_length = []
 
         self.longest_path = 0 # the sum of absolute value of every length in the graph, used as infinity
@@ -63,7 +67,8 @@ class Graph():
             self.longest_path += abs(length)
             self.edge_verticies.append([u,v])
             self.edge_length.append(length)
-            self.vertex_edges[v].append(e)
+            self.vertex_edges_head[v].append(e)
+            self.vertex_edges_tail[u].append(e)
                         
             if length < 0:
                 self.has_negative_edge = True
@@ -93,6 +98,8 @@ class Graph():
         Add a vertex to the graph, return the vertex number
         '''
         self.num_verticies += 1
+        self.vertex_edges_head.append([])
+        self.vertex_edges_tail.append([])
         return self.num_verticies
 
     def add_edge(self,u,v,length):
@@ -102,9 +109,10 @@ class Graph():
         self.num_edges += 1
         self.edge_verticies.append([u,v])
         
-        if v == len(self.vertex_edges): # there is not an index for an edge ending at this vertex yet
-            self.vertex_edges.append([])
-        self.vertex_edges[v].append(self.num_edges-1)
+        #if v == len(self.vertex_edges_head): # there is not an index for an edge ending at this vertex yet
+        #    self.vertex_edges_head.append([])
+        self.vertex_edges_head[v].append(self.num_edges-1)
+        self.vertex_edges_tail[u].append(self.num_edges-1)
 
         self.edge_length.append(length)
         self.longest_path += abs(length)
@@ -161,7 +169,7 @@ class Graph():
             for v in range(1,self.num_verticies+1):
                 case1 = shortest_path[i-1][v]
                 case2 = case1
-                for edge in self.vertex_edges[v]:
+                for edge in self.vertex_edges_head[v]:
                     w = self.edge_verticies[edge][0] # get the start vertex of edge into v
                     c_wv = self.edge_length[edge] # get length of w to v
                     to_w = shortest_path[i-1][w] # get length from s to w
@@ -203,6 +211,55 @@ class Graph():
         self.apsp_bellmanford_shortest = shortest_path
         return self.apsp_bellmanford
 
+    #@profile
+    def Dijkstra(self,s):
+        '''
+        Run Dijkstra's single source shortest path starting at s
+        Returns the distances from s to all other verticies
+        If a vertex is not connected, then the distance to that vertex is self.longest_path
+        '''
+        def add_to_heap(h,tail,explored,added_to_heap_by):
+            '''
+            Add all the verticies connected to tail vertex by and edge to the heap
+            h: Heap instance
+            tail: vertex number
+            explored: array of bools indicating if we have explored the vertex before
+            added_to_heap_by: array of integers indicating the tail that added this vertex to the heap
+            '''
+            for edge in self.vertex_edges_tail[tail]:
+                head = self.edge_verticies[edge][1]
+                if not explored[head]:
+                    proposed_length = shortest_path[tail] + self.edge_length[edge]
+                    # if the head is already on the heap, added_to_heap_by[head]==-1 means it has not been added yet
+                    if added_to_heap_by[head] >= 0:
+                        previous_length = h.delete(head)
+                        if proposed_length > previous_length:
+                            new_length = previous_length
+                        else:
+                            new_length = proposed_length
+                            added_to_heap_by[head] = tail
+                    else:
+                        new_length = proposed_length
+                        added_to_heap_by[head] = tail
+                    h.insert(head,new_length)
+            return added_to_heap_by
+
+        shortest_path = [self.longest_path for n in range(self.num_verticies+1)]
+        explored = [False for n in range(self.num_verticies+1)]
+        added_to_heap_by = [-1 for n in range(self.num_verticies+1)]
+        explored[s] = True
+
+        h = Heap(self.num_verticies)
+        add_to_heap(h,s,explored,added_to_heap_by)
+        while len(h) > 0:
+            w,length = h.extract_min()
+            shortest_path[w] = length
+            explored[w] = True
+            added_to_heap_by = add_to_heap(h,w,explored,added_to_heap_by)
+
+        return shortest_path
+
+    #@profile
     def Johnson_apsp(self):
         '''
         run Johnson's all pairs shortest path alogrithm on the graph
@@ -216,14 +273,15 @@ class Graph():
             # add vertex with edge to every node
             extended_graph = Graph(self.fname,testing=False)
             extended_graph.add_vertex()
-            for v in range(self.num_verticies):
-                extended_graph.add_edge(self.num_verticies,v,0) # from s to every other vertex
+            for v in range(self.num_verticies+1):
+                extended_graph.add_edge(self.num_verticies+1,v,0) # from s to every other vertex
             
             # run bellman ford, the shortest path from s to each vertex is the additive
             #   weight for the corresponding node
             vertex_weights = extended_graph.BellmanFord(extended_graph.num_verticies)
             if vertex_weights is "NULL":
                 self.apsp_johnson = "NULL"
+                self.apsp_johnson_shortest = "NULL"
                 return "NULL"
 
             # update the edge lengths with the vertex_weights
@@ -238,8 +296,24 @@ class Graph():
         #initialize the storage for APSP distances using the sum(abs(edge_length)),every path is gaurentted to be shorter
         #self.apsp_johnson = [[self.longest_path for t in range(self.num_verticies+1)] for s in range(self.num_verticies+1)]
         self.apsp_johnson = []
+        shortest_path = self.longest_path
 
+        for s in range(self.num_verticies+1):
+            shortest_st = self.Dijkstra(s)
 
+            if self.has_negative_edge:
+                for idx,dist in enumerate(shortest_st):
+                    new_dist = dist - vertex_weights[s] + vertex_weights[idx]
+                    shortest_st[idx] = new_dist
+                    shortest_path = min(shortest_path,new_dist)
+            else:
+                for dist in shortest_st:
+                    shortest_path = min(shortest_path,dist)
+
+            self.apsp_johnson.append(shortest_st)
+
+        self.apsp_johnson_shortest = shortest_path
+        return self.apsp_johnson
 
         
 
@@ -259,50 +333,79 @@ import time
 
 fw_time  = 0.
 bf_time = 0.
+johnson_time = 0.
 
 base_path = "course4/test_assignment1"
 fname = "input_random_2_2.txt"
 
+print("Running Floyd-Warshall, Bellman-Ford, and Johnsons algorithm to see speed difference:")
 for fname in os.listdir(base_path):
     if "input" not in fname:
         continue
     n = fname[fname.rfind("_")+1:-4]
     if int(n) > 100:
         continue
-    print("{:25s} ".format(fname))
+    print("{:25s} ".format(fname),end="")
     graph = Graph(os.path.join(base_path,fname),testing=True)
-    
+
     # Floyd Warshall
     start_time = time.time()
-    shortest_path = graph.FloydWarshall_apsp()
+    shortest_path_fw = graph.FloydWarshall_apsp()
     fw_time += time.time()-start_time
-    print("\tFloyd-Warshall: ",end="")
-    if shortest_path == graph.solution:
-        print("Correct! Got {}".format(shortest_path))
-    else:
-        print("WRONG! Got {} expected {}".format(shortest_path,graph.solution))
 
     # Bellman-Ford
     start_time = time.time()
     graph.BellmanFord_apsp()
     bf_time += time.time()-start_time   
-    shortest_path = graph.apsp_bellmanford_shortest
-    print("\tBellman-Ford  : ",end="")
-    if shortest_path == graph.solution:
-        print("Correct! Got {}".format(shortest_path))
+    shortest_path_bf = graph.apsp_bellmanford_shortest
+
+    # Johnson
+    start_time = time.time()
+    graph.Johnson_apsp()
+    johnson_time += time.time()-start_time   
+    shortest_path_johnson = graph.apsp_johnson_shortest
+
+    if graph.solution == shortest_path_fw == shortest_path_bf == shortest_path_johnson:
+        print("All correct! Got {}".format(graph.solution))
     else:
-        print("WRONG! Got {} expected {}".format(shortest_path,graph.solution))
+        print("Solutions do not match!")
+        print("Correct       : {}".format(graph.solution))
+        print("Floyd Warshall: {}".format(shortest_path_fw))
+        print("Bellman Ford  : {}".format(shortest_path_bf))
+        print("Johnson       : {}".format(shortest_path_johnson))
+        
+
+
 print("\nTiming Results:")
-print("Floyd-Warshall: {:5.3f}   Bellmand-Ford: {:5.3f}".format(fw_time,bf_time))
-'''
+print("Floyd-Warshall: {:5.3f}s   Bellmand-Ford: {:5.3f}s   Johnson: {:5.3f}s".format(fw_time,bf_time,johnson_time))
+
+print("\nRunning all tests using Johnson's Algorithm")
+start_time = time.time()
+for fname in os.listdir(base_path):
+    if "input" not in fname:
+        continue
+    n = fname[fname.rfind("_")+1:-4]
+    #if int(n) > 1000:
+    #    continue
+    print("{:25s} ".format(fname),end="")
+    graph = Graph(os.path.join(base_path,fname),testing=True)
+
+    graph.Johnson_apsp()
+    shortest_path = graph.apsp_johnson_shortest
+
+    if shortest_path == graph.solution:
+        print("Correct! Got {} Elapsed time: {:.3f}s".format(graph.solution,time.time()-start_time))
+    else:
+        print("\n\tIncorrect! Got {} Expected: {} Elapsed time: {:.3f}s".format(shortest_path,graph.solution,time.time()-start_time))
+
 print("Starting Assignment!")
+start_time = time.time()
 base_path = "course4/"
 fnames = ["assignment1_input1.txt","assignment1_input2.txt","assignment1_input3.txt"]
 shortest_path = [0 for _ in fnames]
 for idx,fname in enumerate(fnames):
     graph = Graph(os.path.join(base_path,fname),testing=False)
-    shortest_path[idx] = graph.FloydWarshall_apsp()
+    graph.Johnson_apsp()
+    shortest_path[idx] = graph.apsp_johnson_shortest
 
-    print("{}: shortest path: {}".format(fname,shortest_path[idx]))
-
-'''
+    print("{}: shortest path: {} Elapsed Time: {:.3f}s".format(fname,shortest_path[idx],time.time()-start_time))
