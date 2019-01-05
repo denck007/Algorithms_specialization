@@ -14,3 +14,10 @@ I did a comparision between Floyd-Warshall, Bellman-Ford, and Johnson using the 
 What is really cool about this algorithm is how it shows to never be satisfied by the obvious and that it might be possible to turn generic cases into special cases which run faster.
 
 
+## Week2 Assignment: Traveling Salesman
+This assignment solves the classic traveling salesman problem. We are given cartesian coordinates for 25 cities and asked to compute the shortest path between all the cities that forms a loop and never visits the same city twice. I took a fairly naive approach to coding this up, and as a result it is fairly slow and uses tons of memory. Total solve time on the 25 city version is 2262seconds, with ~16seconds of pre-processing to generate the codes for tracking what cities have been visited. total memory useage was on the order of 13gigs.
+
+To track all the combinations of visited cities I used integers where each bit of the integer represents a city. so the lowest bit being 1 means we visted city 1. As we start from city 1, and the algorithm explicitly ignores all visits to city 1 (for each j in set S where j!=1) we do not need to do any searching on subsets where bit 1 is 0, so we can ignore all even numbers. We need to go through the subproblems in increasing size, so we create a list of lists where the outer index is the subproblem size, and the inner lists are the integers with the number of 1 bits == subproblem size.
+
+Then we create a 2D array of size 2**num_cities x num_cities. Iterate over the subproblem sets (in increasing order of cities included) looking for shorter distances between the group of cites (less 1 city) and every other city. Here we could easily use ~ 1/2 as much memory. The 2D array that stores the minimum distance between a set of cities includes even numbers. Because we are starting from city 1, rows with even IDs are never updated. 
+
