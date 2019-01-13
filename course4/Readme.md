@@ -21,3 +21,7 @@ To track all the combinations of visited cities I used integers where each bit o
 
 Then we create a 2D array of size 2**num_cities x num_cities. Iterate over the subproblem sets (in increasing order of cities included) looking for shorter distances between the group of cites (less 1 city) and every other city. Here we could easily use ~ 1/2 as much memory. The 2D array that stores the minimum distance between a set of cities includes even numbers. Because we are starting from city 1, rows with even IDs are never updated. 
 
+## Week3 Assignment: Traveling salesman using Hueristics
+In this assignment we use the nearest neighbor hueristic to determine shortest path. What is cool about this hueristic is that it is really really fast. Total time is 3.74 seconds for a path including 33,708 cities! The basic idea is to build up a list of all the cities locations sorted by x location, then iterate up and down from the current location looking for the next closest city. When the x direction distance between the current city and the next possible nearest neighbor is greater than the distance between an already identified potential neasest neighbor then we break from the loop. 
+
+I found the code pretty straight forward, but ran into an issue where all the test cases passed but the assignment solution was wrong. It ended up being that 2 cities having the same distance from a single city (ie city 3 to 2 and city 3 to 4). I was not properly accounting for breaking the tie of cities having the same distance. 
